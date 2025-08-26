@@ -18,17 +18,17 @@ def extract_shortcode_from_json_xz(json_xz_path):
         print(f"无法读取 {json_xz_path}: {e}")
         return None
 
-def check_gaoxiao_integrity():
-    """检查gaoxiao账号的文件完整性"""
+def check_ai_vanvan_integrity():
+    """检查ai_vanvan账号的文件完整性"""
     # 加载下载记录
-    log_path = Path(r"C:\Code\social-media-hub\videos\download_logs\gaoxiao_downloads.json")
+    log_path = Path(r"C:\Code\social-media-hub\videos\download_logs\ai_vanvan_downloads.json")
     with open(log_path, 'r', encoding='utf-8') as f:
         download_data = json.load(f)
     
     downloads = download_data.get('downloads', [])
     recent_downloads = [d for d in downloads if not d.get('merged', False)]
     
-    print(f"🔍 检查gaoxiao账号文件完整性")
+    print(f"🔍 检查ai_vanvan账号文件完整性")
     print(f"📋 总下载记录: {len(downloads)}")
     print(f"🆕 未合并记录: {len(recent_downloads)}")
     
@@ -143,7 +143,7 @@ def check_gaoxiao_integrity():
     }
 
 if __name__ == "__main__":
-    result = check_gaoxiao_integrity()
+    result = check_ai_vanvan_integrity()
     
     print(f"\n🎯 完整性总结:")
     print(f"记录: {result['recent_records']}, 文件: {result['mp4_files']}, 匹配: {result['matched']}")

@@ -70,18 +70,22 @@ class InstagramDownloader(IDownloader):
 
     def login(self, account: Account) -> bool:
         """登录 Instagram 账号"""
+        # Logger 直接使用账号名称
         self.logger = Logger(account.name)
         
         try:
-            # 创建安全的 Instaloader 实例，限制请求频率
+            # 创建安全的 Instaloader 实例，限制请求频率和禁用输出
             self.loader = Instaloader(
                 max_connection_attempts=3,  # 最大连接尝试次数
-                request_timeout=10         # 请求超时时间
+                request_timeout=10,        # 请求超时时间
+                quiet=True,                # 禁用输出
+                save_metadata=False        # 不保存元数据文件
             )
             
             # 尝试从 session 文件登录
             session_file = self.get_session_file_path(account.username)
             if os.path.exists(session_file):
+                print(f"Loaded session from {session_file}.")
                 self.loader.load_session_from_file(account.username, session_file)
                 self.loader.context.username = account.username  # 关键设置！
                 if self.loader.test_login() == account.username:
@@ -150,9 +154,8 @@ class InstagramDownloader(IDownloader):
             # 限制处理数量
             MAX_PROCESS_COUNT = min(count, max_posts)
             
-            # 用户友好的账户名显示
-            display_name = get_display_name(account.name)
-            self.logger.info(f"开始下载任务：{display_name}")
+            # 直接使用账号名显示
+            self.logger.info(f"开始下载任务：{account.name}")
             
             # 初始化文件夹管理器
             folder_manager = FolderManager(account.name, account_config)

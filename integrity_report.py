@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-gaoxiao账号数据完整性总结报告
+ai_vanvan账号数据完整性总结报告
 """
 
 import json
@@ -11,11 +11,11 @@ from pathlib import Path
 def generate_integrity_report():
     """生成完整性报告"""
     
-    print("🔍 gaoxiao账号数据完整性分析报告")
+    print("🔍 ai_vanvan账号数据完整性分析报告")
     print("=" * 50)
     
     # 加载下载记录
-    log_path = Path(r"C:\Code\social-media-hub\videos\download_logs\gaoxiao_downloads.json")
+    log_path = Path(r"C:\Code\social-media-hub\videos\download_logs\ai_vanvan_downloads.json")
     with open(log_path, 'r', encoding='utf-8') as f:
         download_data = json.load(f)
     
@@ -23,7 +23,7 @@ def generate_integrity_report():
     recent_downloads = [d for d in downloads if not d.get('merged', False)]
     
     # 扫描实际文件
-    downloads_dir = Path(r"C:\Code\social-media-hub\videos\downloads\gaoxiao")
+    downloads_dir = Path(r"C:\Code\social-media-hub\videos\downloads\ai_vanvan")
     
     mp4_files = []
     json_files = []

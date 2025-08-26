@@ -9,7 +9,7 @@ from pathlib import Path
 def final_merge_report():
     """生成最终的合并准备报告"""
     
-    print("🎬 gaoxiao账号视频合并准备报告")
+    print("🎬 ai_vanvan账号视频合并准备报告")
     print("=" * 60)
     
     print("📊 合并统计:")
@@ -18,7 +18,7 @@ def final_merge_report():
     print("  📁 文件状态: 完美匹配，所有文件都存在")
     
     # 计算文件大小
-    downloads_dir = Path(r"C:\Code\social-media-hub\videos\downloads\gaoxiao")
+    downloads_dir = Path(r"C:\Code\social-media-hub\videos\downloads\ai_vanvan")
     
     total_size = 0
     file_count = 0
@@ -49,7 +49,7 @@ def final_merge_report():
     
     print(f"\n🚀 执行步骤:")
     print(f"  1. 运行视频合并器")
-    print(f"  2. 选择gaoxiao账号")
+    print(f"  2. 选择ai_vanvan账号")
     print(f"  3. 确认合并38个视频")
     print(f"  4. 等待处理完成")
     print(f"  5. 检查合并结果")

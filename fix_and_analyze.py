@@ -7,7 +7,7 @@ from collections import defaultdict
 
 def fix_paths_and_analyze():
     # 读取下载记录
-    with open('videos/download_logs/gaoxiao_downloads.json', 'r', encoding='utf-8') as f:
+    with open('videos/download_logs/ai_vanvan_downloads.json', 'r', encoding='utf-8') as f:
         data = json.load(f)
     
     print("🔧 修复路径问题...")
@@ -20,15 +20,15 @@ def fix_paths_and_analyze():
         # 修复路径中的ai_vanvan
         if 'ai_vanvan' in file_path:
             # 替换路径
-            new_path = file_path.replace('videos\\downloads\\ai_vanvan', 'videos/downloads/gaoxiao')
-            new_path = new_path.replace('videos/downloads/ai_vanvan', 'videos/downloads/gaoxiao')
+            new_path = file_path.replace('videos\\downloads\\gaoxiao', 'videos/downloads/ai_vanvan')
+            new_path = new_path.replace('videos/downloads/gaoxiao', 'videos/downloads/ai_vanvan')
             record['file_path'] = new_path
             fixed_count += 1
     
     print(f"✅ 修复了 {fixed_count} 个路径")
     
     # 保存修复后的数据
-    with open('videos/download_logs/gaoxiao_downloads.json', 'w', encoding='utf-8') as f:
+    with open('videos/download_logs/ai_vanvan_downloads.json', 'w', encoding='utf-8') as f:
         json.dump(data, f, ensure_ascii=False, indent=2)
     
     print("💾 已保存修复后的记录")
@@ -38,7 +38,7 @@ def fix_paths_and_analyze():
     
     # 收集实际文件
     actual_files = set()
-    for root, dirs, files in os.walk('videos/downloads/gaoxiao'):
+    for root, dirs, files in os.walk('videos/downloads/ai_vanvan'):
         for file in files:
             if file.endswith('.mp4'):
                 # 提取文件的基本信息（时间戳）

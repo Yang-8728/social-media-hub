@@ -14,7 +14,7 @@ def check_mergeable_videos():
     print("=" * 50)
     
     # 加载下载记录
-    log_path = Path(r"C:\Code\social-media-hub\videos\download_logs\gaoxiao_downloads.json")
+    log_path = Path(r"C:\Code\social-media-hub\videos\download_logs\ai_vanvan_downloads.json")
     with open(log_path, 'r', encoding='utf-8') as f:
         download_data = json.load(f)
     
@@ -33,7 +33,7 @@ def check_mergeable_videos():
     print(f"  🆕 待合并: {len(unmerged_downloads)}")
     
     # 检查实际文件
-    downloads_dir = Path(r"C:\Code\social-media-hub\videos\downloads\gaoxiao")
+    downloads_dir = Path(r"C:\Code\social-media-hub\videos\downloads\ai_vanvan")
     
     mp4_files = []
     for folder in downloads_dir.iterdir():

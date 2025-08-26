@@ -214,8 +214,8 @@ def main():
     parser.add_argument("--backup", action="store_true", help="备份日志文件")
     
     # 账号参数
-    parser.add_argument("--gaoxiao", action="store_true", help="使用 ai_vanvan 账号 (搞笑)")
-    parser.add_argument("--gf", action="store_true", help="使用 aigf8728 账号")
+    parser.add_argument("--ai_vanvan", action="store_true", help="使用 ai_vanvan 账号 (搞笑)")
+    parser.add_argument("--aigf8728", action="store_true", help="使用 aigf8728 账号")
     parser.add_argument("--account", type=str, help="指定账号名称")
     
     # 其他参数
@@ -227,10 +227,10 @@ def main():
     
     # 确定账号
     account_name = None
-    if args.gaoxiao:
-        account_name = "gaoxiao"
-    elif args.gf:
-        account_name = "gf"
+    if args.ai_vanvan:
+        account_name = "ai_vanvan"
+    elif args.aigf8728:
+        account_name = "aigf8728"
     elif args.account:
         account_name = args.account
     
@@ -243,7 +243,7 @@ def main():
             for acc in config.keys():
                 run_download(acc, args.limit)
         else:
-            print("❌ 请指定账号 (--vanvan, --aigf, --account <name>, 或 --all)")
+            print("❌ 请指定账号 (--ai_vanvan, --aigf8728, --account <name>, 或 --all)")
     
     elif args.merge:
         if account_name:
@@ -253,7 +253,7 @@ def main():
             for acc in config.keys():
                 run_merge(acc, limit=args.merge_limit)
         else:
-            print("❌ 请指定账号 (--vanvan, --aigf, --account <name>, 或 --all)")
+            print("❌ 请指定账号 (--ai_vanvan, --aigf8728, --account <name>, 或 --all)")
     
     elif args.status:
         show_status(account_name)
@@ -265,17 +265,17 @@ def main():
         if account_name:
             search_blogger(account_name, args.search)
         else:
-            print("❌ 搜索博主时请指定账号 (--vanvan, --aigf, 或 --account <name>)")
+            print("❌ 搜索博主时请指定账号 (--ai_vanvan, --aigf8728, 或 --account <name>)")
     
     else:
         # 默认显示帮助
         parser.print_help()
         print("\n💡 常用命令示例:")
-        print("   python main.py --download --vanvan --limit 5     # 下载 ai_vanvan 的 5 个内容")
-        print("   python main.py --merge --vanvan                  # 合并 ai_vanvan 的视频")
+        print("   python main.py --download --ai_vanvan --limit 5     # 下载 ai_vanvan 的 5 个内容")
+        print("   python main.py --merge --ai_vanvan                  # 合并 ai_vanvan 的视频")
         print("   python main.py --status                          # 查看所有账号状态")
-        print("   python main.py --folders --vanvan                # 查看 ai_vanvan 文件夹")
-        print("   python main.py --search 博主名 --aigf            # 搜索 aigf8728 中的博主文件夹")
+        print("   python main.py --folders --ai_vanvan                # 查看 ai_vanvan 文件夹")
+        print("   python main.py --search 博主名 --aigf8728            # 搜索 aigf8728 中的博主文件夹")
         print("   python main.py --download --all --limit 3        # 下载所有账号各 3 个内容")
 
 

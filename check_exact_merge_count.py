@@ -15,7 +15,7 @@ def check_record_file_mapping():
     print("=" * 60)
     
     # 加载下载记录
-    log_path = Path(r"C:\Code\social-media-hub\videos\download_logs\gaoxiao_downloads.json")
+    log_path = Path(r"C:\Code\social-media-hub\videos\download_logs\ai_vanvan_downloads.json")
     with open(log_path, 'r', encoding='utf-8') as f:
         download_data = json.load(f)
     
@@ -25,7 +25,7 @@ def check_record_file_mapping():
     print(f"📋 未合并记录: {len(unmerged_downloads)} 个")
     
     # 获取实际文件和它们的shortcode
-    downloads_dir = Path(r"C:\Code\social-media-hub\videos\downloads\gaoxiao")
+    downloads_dir = Path(r"C:\Code\social-media-hub\videos\downloads\ai_vanvan")
     
     file_shortcodes = {}
     mp4_files = []

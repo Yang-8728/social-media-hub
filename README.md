@@ -29,16 +29,16 @@ chcp 65001
 ### 2. 下载内容
 ```bash
 # 下载搞笑内容
-python main.py --download --gaoxiao
+python main.py --download --ai_vanvan
 
 # 下载女友内容
-python main.py --download --gf
+python main.py --download --aigf8728
 ```
 
 ### 3. 合并视频
 ```bash
 # 合并最新8个视频
-python main.py --merge --gaoxiao --merge-limit 8
+python main.py --merge --ai_vanvan --merge-limit 8
 ```
 
 ## 📁 项目结构
@@ -60,8 +60,8 @@ social-media-hub/
 
 ### 下载命令
 - `--download` - 启动下载任务
-- `--gaoxiao` - 使用搞笑账户 (ai_vanvan)
-- `--gf` - 使用女友账户 (aigf8728)  
+- `--ai_vanvan` - 使用搞笑账户 (ai_vanvan)
+- `--aigf8728` - 使用女友账户 (aigf8728)  
 - `--limit N` - 限制下载数量
 
 ### 合并命令
@@ -71,10 +71,10 @@ social-media-hub/
 ### 示例
 ```bash
 # 下载最多20个视频
-python main.py --download --gaoxiao --limit 20
+python main.py --download --ai_vanvan --limit 20
 
 # 合并最新5个视频
-python main.py --merge --gf --merge-limit 5
+python main.py --merge --aigf8728 --merge-limit 5
 ```
 
 ## 🛠️ 工具脚本

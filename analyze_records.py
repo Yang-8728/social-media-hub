@@ -5,9 +5,9 @@ import json
 import os
 from datetime import datetime
 
-def analyze_gaoxiao_records():
+def analyze_ai_vanvan_records():
     # 读取下载记录
-    with open('videos/download_logs/gaoxiao_downloads.json', 'r', encoding='utf-8') as f:
+    with open('videos/download_logs/ai_vanvan_downloads.json', 'r', encoding='utf-8') as f:
         data = json.load(f)
     
     print(f"📊 gaoxiao下载记录分析：")
@@ -98,4 +98,4 @@ def analyze_gaoxiao_records():
         print(f"   ... 还有{len(recent_unmerged) - 10}个未合并记录")
 
 if __name__ == "__main__":
-    analyze_gaoxiao_records()
+    analyze_ai_vanvan_records()

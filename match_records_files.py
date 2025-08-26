@@ -21,7 +21,7 @@ def find_matching_files():
     """通过目录结构和文件名匹配记录和文件"""
     
     # 读取下载记录
-    with open('videos/download_logs/gaoxiao_downloads.json', 'r', encoding='utf-8') as f:
+    with open('videos/download_logs/ai_vanvan_downloads.json', 'r', encoding='utf-8') as f:
         data = json.load(f)
     
     print("🔍 通过目录和文件内容匹配记录和文件...")
@@ -29,11 +29,11 @@ def find_matching_files():
     # 收集所有文件和对应信息
     all_files = {}  # {文件路径: {文件信息}}
     
-    for root, dirs, files in os.walk('videos/downloads/gaoxiao'):
+    for root, dirs, files in os.walk('videos/downloads/ai_vanvan'):
         for file in files:
             if file.endswith('.mp4'):
                 full_path = os.path.join(root, file)
-                relative_path = full_path.replace('videos\\downloads\\gaoxiao\\', '').replace('videos/downloads/gaoxiao/', '')
+                relative_path = full_path.replace('videos\\downloads\\ai_vanvan\\', '').replace('videos/downloads/ai_vanvan/', '')
                 
                 # 查找同名的txt文件（包含shortcode）
                 txt_file = file.replace('.mp4', '.txt')
