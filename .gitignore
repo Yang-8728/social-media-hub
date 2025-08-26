@@ -1,0 +1,65 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+.venv
+
+# Virtual environments
+.env
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Project specific
+temp/
+logs/
+*.log
+
+# 敏感信息
+config/accounts.json
+config/secrets.json
+*_session
+*.session
+
+# 下载的内容（太大，不适合git）
+videos/downloads/
+videos/merged/
+data/download_logs/
+
+# 临时文件
+*.tmp
+*.temp
+.cache/
+
+# FFmpeg (太大)
+ffmpeg/
+
+# 测试文件
+test_*
+debug_*
