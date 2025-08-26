@@ -56,15 +56,51 @@ data/download_logs/
 videos﹨downloads﹨*/
 videos﹨merged﹨*/
 
-# 媒体文件
+# 确保任何位置的视频文件都被忽略
+**/*.mp4
+**/*.MP4
+**/*.avi
+**/*.AVI
+**/*.mov
+**/*.MOV
+**/*.mkv
+**/*.MKV
+**/*.wmv
+**/*.WMV
+
+# 媒体文件 - 禁止上传任何媒体文件
 *.mp4
+*.MP4
 *.avi
+*.AVI
 *.mov
+*.MOV
 *.mkv
+*.MKV
+*.wmv
+*.WMV
+*.flv
+*.FLV
+*.webm
+*.WEBM
+*.m4v
+*.M4V
+*.3gp
+*.3GP
 *.jpg
+*.JPG
 *.jpeg
+*.JPEG
 *.png
+*.PNG
 *.gif
+*.GIF
+*.bmp
+*.BMP
+*.tiff
+*.TIFF
+*.webp
+*.WEBP
 *.json.xz
 
 # 临时文件
