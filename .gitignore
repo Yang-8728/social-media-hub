@@ -118,3 +118,6 @@ ffmpeg/
 # 工具目录中的临时测试文件
 tools/test_*.py
 tools/debug_*.py
+
+# FFmpeg工具 - 太大不上传 (260MB)
+tools/ffmpeg/
