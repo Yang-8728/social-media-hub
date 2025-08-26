@@ -60,6 +60,10 @@ data/download_logs/
 # FFmpeg (太大)
 ffmpeg/
 
-# 测试文件
-test_*
-debug_*
+# 临时测试文件（仅忽略根目录的临时测试脚本）
+/test_*.py
+/debug_*.py
+
+# 工具目录中的临时测试文件
+tools/test_*.py
+tools/debug_*.py
