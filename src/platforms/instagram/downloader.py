@@ -3,6 +3,8 @@ Instagram 下载器实现
 基于 instaloader 实现 Instagram 内容下载
 """
 import os
+import sys
+import contextlib
 from glob import glob
 from os.path import expanduser
 from platform import system
@@ -23,6 +25,17 @@ class InstagramDownloader(IDownloader):
     def __init__(self):
         self.loader = None
         self.logger = None
+
+    @contextlib.contextmanager
+    def suppress_instaloader_errors(self):
+        """抑制instaloader的错误输出"""
+        import io
+        old_stderr = sys.stderr
+        sys.stderr = io.StringIO()
+        try:
+            yield
+        finally:
+            sys.stderr = old_stderr
 
     def get_cookiefile(self):
         """获取 Firefox cookies 文件路径"""
@@ -88,9 +101,15 @@ class InstagramDownloader(IDownloader):
                 print(f"Loaded session from {session_file}.")
                 self.loader.load_session_from_file(account.username, session_file)
                 self.loader.context.username = account.username  # 关键设置！
-                if self.loader.test_login() == account.username:
-                    self.logger.success(f"从 session 文件登录成功: {account.username}")
-                    return True
+                
+                # 静默测试登录，抑制错误输出
+                try:
+                    with self.suppress_instaloader_errors():
+                        if self.loader.test_login() == account.username:
+                            self.logger.success(f"从 session 文件登录成功: {account.username}")
+                            return True
+                except Exception:
+                    pass  # 忽略session检查错误，继续使用Firefox cookies
             
             # 尝试从 Firefox cookies 登录
             cookiefile = self.get_cookiefile()
@@ -229,8 +248,9 @@ class InstagramDownloader(IDownloader):
                     download_folder = clean_unicode_path(download_folder)
                     os.makedirs(download_folder, exist_ok=True)
                     
-                    # 下载帖子
-                    self.loader.download_post(post, target=download_folder)
+                    # 静默下载帖子，抑制错误输出
+                    with self.suppress_instaloader_errors():
+                        self.loader.download_post(post, target=download_folder)
                     
                     # 记录下载成功
                     post_obj = Post(
