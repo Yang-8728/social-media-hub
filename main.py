@@ -228,9 +228,9 @@ def main():
     # 确定账号
     account_name = None
     if args.gaoxiao:
-        account_name = "ai_vanvan"
+        account_name = "gaoxiao"
     elif args.gf:
-        account_name = "aigf8728"
+        account_name = "gf"
     elif args.account:
         account_name = args.account
     

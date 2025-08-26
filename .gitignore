@@ -52,6 +52,21 @@ videos/downloads/
 videos/merged/
 data/download_logs/
 
+# Unicode路径的下载内容（修复Windows Unicode路径问题）
+videos﹨downloads﹨*/
+videos﹨merged﹨*/
+
+# 媒体文件
+*.mp4
+*.avi
+*.mov
+*.mkv
+*.jpg
+*.jpeg
+*.png
+*.gif
+*.json.xz
+
 # 临时文件
 *.tmp
 *.temp
