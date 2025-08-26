@@ -14,6 +14,7 @@ from ...core.interfaces import IDownloader
 from ...core.models import Account, Post, DownloadResult
 from ...utils.logger import Logger
 from ...utils.path_utils import clean_unicode_path
+from ...utils.account_mapping import get_display_name
 
 
 class InstagramDownloader(IDownloader):
@@ -150,7 +151,7 @@ class InstagramDownloader(IDownloader):
             MAX_PROCESS_COUNT = min(count, max_posts)
             
             # 用户友好的账户名显示
-            display_name = "gaoxiao" if account.name == "ai_vanvan" else ("gf" if account.name == "aigf8728" else account.name)
+            display_name = get_display_name(account.name)
             self.logger.info(f"开始下载任务：{display_name}")
             
             # 初始化文件夹管理器
