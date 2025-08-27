@@ -41,6 +41,132 @@ class VideoMerger:
         
         return video_files[:count]
 
+    def get_video_resolution(self, video_path: str) -> tuple:
+        """获取视频分辨率"""
+        try:
+            ffprobe_exe = os.path.join("tools", "ffmpeg", "bin", "ffprobe.exe")
+            cmd = [
+                ffprobe_exe,
+                "-v", "quiet",
+                "-select_streams", "v:0",
+                "-show_entries", "stream=width,height",
+                "-of", "csv=p=0",
+                video_path
+            ]
+            
+            result = subprocess.run(cmd, capture_output=True, text=True, check=True)
+            width, height = result.stdout.strip().split(',')
+            return int(width), int(height)
+        except Exception as e:
+            self.logger.warning(f"无法获取视频分辨率 {video_path}: {e}")
+            return None, None
+
+    def find_target_resolution(self, video_files: List[str]) -> tuple:
+        """分析所有视频，找到最适合的目标分辨率"""
+        resolutions = {}
+        
+        for video in video_files:
+            width, height = self.get_video_resolution(video)
+            if width and height:
+                # 判断是横屏还是竖屏
+                if height > width:  # 竖屏
+                    # 标准化竖屏分辨率
+                    if width >= 720:
+                        target = (720, 1280)  # 720p竖屏
+                    else:
+                        target = (540, 960)   # 较小竖屏
+                else:  # 横屏
+                    # 标准化横屏分辨率
+                    if width >= 1280:
+                        target = (1280, 720)  # 720p横屏
+                    else:
+                        target = (960, 540)   # 较小横屏
+                        
+                resolutions[target] = resolutions.get(target, 0) + 1
+        
+        if not resolutions:
+            # 默认竖屏分辨率(Instagram常用)
+            return 720, 1280
+            
+        # 返回最常见的分辨率
+        target = max(resolutions.items(), key=lambda x: x[1])[0]
+        self.logger.info(f"检测到目标分辨率: {target[0]}x{target[1]} (出现{resolutions[target]}次)")
+        return target
+
+    def normalize_video_resolution(self, input_path: str, output_path: str, target_width: int, target_height: int) -> bool:
+        """统一视频分辨率，保持长宽比，添加黑边"""
+        try:
+            ffmpeg_exe = os.path.join("tools", "ffmpeg", "bin", "ffmpeg.exe")
+            
+            # FFmpeg命令：缩放并添加黑边
+            cmd = [
+                ffmpeg_exe,
+                "-i", input_path,
+                "-vf", f"scale={target_width}:{target_height}:force_original_aspect_ratio=decrease,pad={target_width}:{target_height}:(ow-iw)/2:(oh-ih)/2:black",
+                "-c:v", "libx264",
+                "-crf", "23",
+                "-preset", "medium",
+                "-c:a", "aac",
+                "-b:a", "128k",
+                "-y",
+                output_path
+            ]
+            
+            result = subprocess.run(cmd, capture_output=True, text=True)
+            if result.returncode == 0:
+                return True
+            else:
+                self.logger.error(f"视频标准化失败: {result.stderr}")
+                return False
+                
+        except Exception as e:
+            self.logger.error(f"视频标准化出错: {e}")
+            return False
+
+    def merge_videos_with_normalization(self, video_files: List[str], output_path: str) -> bool:
+        """统一分辨率后合并视频"""
+        if not video_files:
+            return False
+            
+        # 1. 分析目标分辨率
+        target_width, target_height = self.find_target_resolution(video_files)
+        self.logger.info(f"目标分辨率: {target_width}x{target_height}")
+        
+        # 2. 创建临时目录
+        temp_dir = "temp_normalized"
+        os.makedirs(temp_dir, exist_ok=True)
+        
+        normalized_files = []
+        
+        try:
+            # 3. 标准化所有视频
+            self.logger.info("开始标准化视频分辨率...")
+            for i, video in enumerate(video_files):
+                temp_output = os.path.join(temp_dir, f"normalized_{i:03d}.mp4")
+                
+                self.logger.info(f"  标准化 ({i+1}/{len(video_files)}): {os.path.basename(video)}")
+                
+                if self.normalize_video_resolution(video, temp_output, target_width, target_height):
+                    normalized_files.append(temp_output)
+                else:
+                    self.logger.warning(f"跳过标准化失败的视频: {video}")
+            
+            if not normalized_files:
+                self.logger.error("没有成功标准化的视频")
+                return False
+                
+            # 4. 合并标准化后的视频
+            self.logger.info("开始合并标准化后的视频...")
+            return self.merge_videos_with_ffmpeg(normalized_files, output_path)
+            
+        finally:
+            # 5. 清理临时文件
+            for temp_file in normalized_files:
+                if os.path.exists(temp_file):
+                    os.remove(temp_file)
+            if os.path.exists(temp_dir):
+                os.rmdir(temp_dir)
+
     def merge_videos_with_ffmpeg(self, video_files: List[str], output_path: str) -> bool:
         """使用FFmpeg合并视频"""
         if not video_files:
@@ -113,27 +239,38 @@ class VideoMerger:
 
     def merge_unmerged_videos(self, limit: int = None) -> Dict[str, int]:
         """合并未合并的视频"""
-        # 暂时的简单实现
         if not self.account_name:
             return {"merged": 0, "skipped": 0, "failed": 1}
         
-        # 获取今天的下载目录
-        today = datetime.now().strftime("%Y-%m-%d")
-        download_dir = os.path.join("videos", "downloads", self.account_name, today)
+        # 获取所有下载目录
+        downloads_base = os.path.join("videos", "downloads", self.account_name)
         
-        if not os.path.exists(download_dir):
-            self.logger.warning(f"下载目录不存在: {download_dir}")
+        if not os.path.exists(downloads_base):
+            self.logger.warning(f"下载目录不存在: {downloads_base}")
             return {"merged": 0, "skipped": 0, "failed": 0}
         
-        # 获取要合并的视频数量
-        merge_count = limit if limit else 8
+        # 收集所有视频文件
+        all_videos = []
+        for date_dir in os.listdir(downloads_base):
+            date_path = os.path.join(downloads_base, date_dir)
+            if os.path.isdir(date_path):
+                videos = glob.glob(os.path.join(date_path, "*.mp4"))
+                all_videos.extend(videos)
         
-        # 获取最新的视频文件
-        video_files = self.get_latest_videos(download_dir, merge_count)
-        
-        if not video_files:
+        if not all_videos:
             self.logger.info("没有找到需要合并的视频文件")
             return {"merged": 0, "skipped": 0, "failed": 0}
+        
+        # 按修改时间排序，最新的在前
+        all_videos.sort(key=lambda x: os.path.getmtime(x), reverse=True)
+        
+        # 应用数量限制
+        if limit:
+            merge_videos = all_videos[:limit]
+            self.logger.info(f"找到 {len(all_videos)} 个视频，合并最新的 {len(merge_videos)} 个")
+        else:
+            merge_videos = all_videos
+            self.logger.info(f"找到 {len(all_videos)} 个视频，准备全部合并")
         
         # 创建合并输出目录
         merge_dir = os.path.join("videos", "merged", self.account_name)
@@ -141,11 +278,32 @@ class VideoMerger:
         
         # 生成输出文件名
         timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-        output_filename = f"{self.account_name}_{timestamp}_merged_{len(video_files)}videos.mp4"
+        output_filename = f"{self.account_name}_{timestamp}_merged_{len(merge_videos)}videos.mp4"
         output_path = os.path.join(merge_dir, output_filename)
         
+        # 询问用户是否使用智能分辨率统一
+        self.logger.info("检测到不同分辨率的视频，建议使用智能合并模式")
+        self.logger.info("智能模式: 统一分辨率，保持长宽比，添加黑边")
+        self.logger.info("普通模式: 直接合并(可能变形)")
+        
+        # 检查是否有不同分辨率
+        resolutions = set()
+        for video in merge_videos[:5]:  # 检查前5个视频
+            w, h = self.get_video_resolution(video)
+            if w and h:
+                resolutions.add((w, h))
+        
+        use_normalization = len(resolutions) > 1  # 如果有多种分辨率就自动使用标准化
+        
+        if use_normalization:
+            self.logger.info(f"检测到 {len(resolutions)} 种不同分辨率，启用智能合并模式")
+            success = self.merge_videos_with_normalization(merge_videos, output_path)
+        else:
+            self.logger.info("所有视频分辨率一致，使用快速合并模式")
+            success = self.merge_videos_with_ffmpeg(merge_videos, output_path)
+        
         # 执行合并
-        if self.merge_videos_with_ffmpeg(video_files, output_path):
+        if success:
             return {"merged": 1, "skipped": 0, "failed": 0}
         else:
             return {"merged": 0, "skipped": 0, "failed": 1}

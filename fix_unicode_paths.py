@@ -1,54 +1,60 @@
-#!/usr/bin/env python3
-"""移动文件到正确路径"""
-
 import os
 import shutil
 
-def move_files():
-    """将Unicode路径的文件移动到正确路径"""
-    unicode_folder = r'.\videos﹨downloads﹨ai_vanvan﹨2025-08-25'
-    correct_folder = r'.\videos\downloads\ai_vanvan\2025-08-25'
+def move_unicode_files_to_standard():
+    """将Unicode路径中的文件移动到标准路径"""
+    base_path = r'c:\Code\social-media-hub'
+    print(f"搜索基础路径: {base_path}")
     
-    if not os.path.exists(unicode_folder):
-        print("❌ Unicode文件夹不存在")
-        return
+    total_found = 0
+    total_moved = 0
     
-    # 确保正确的文件夹存在
-    os.makedirs(correct_folder, exist_ok=True)
-    
-    files = os.listdir(unicode_folder)
-    print(f"准备移动 {len(files)} 个文件...")
-    
-    moved = 0
-    skipped = 0
-    
-    for file in files:
-        src = os.path.join(unicode_folder, file)
-        dst = os.path.join(correct_folder, file)
-        
-        if os.path.exists(dst):
-            print(f"⚠️  跳过已存在: {file}")
-            skipped += 1
-        else:
+    # 查找所有Unicode路径中的文件
+    for root, dirs, files in os.walk(base_path):
+        if '﹨' in root and files:  # 如果路径包含Unicode分隔符且有文件
+            total_found += len(files)
+            print(f"\n发现Unicode路径: {root}")
+            print(f"  包含 {len(files)} 个文件")
+            
+            # 计算对应的标准路径
+            standard_root = root.replace('﹨', '\\')
+            print(f"  对应标准路径: {standard_root}")
+            
+            # 确保标准路径目录存在
+            os.makedirs(standard_root, exist_ok=True)
+            
+            # 移动每个文件
+            moved_count = 0
+            for file in files:
+                src_path = os.path.join(root, file)
+                dst_path = os.path.join(standard_root, file)
+                
+                try:
+                    if not os.path.exists(dst_path):  # 避免覆盖
+                        shutil.move(src_path, dst_path)
+                        print(f"    ✅ 移动: {file}")
+                        moved_count += 1
+                    else:
+                        print(f"    ⚠️  跳过 (已存在): {file}")
+                except Exception as e:
+                    print(f"    ❌ 移动失败 {file}: {e}")
+            
+            total_moved += moved_count
+            print(f"  成功移动 {moved_count} 个文件")
+            
+            # 如果Unicode目录现在是空的，删除它
             try:
-                shutil.move(src, dst)
-                print(f"✅ 移动: {file}")
-                moved += 1
-            except Exception as e:
-                print(f"❌ 移动失败 {file}: {e}")
+                if not os.listdir(root):
+                    os.rmdir(root)
+                    print(f"  🗑️  删除空目录: {root}")
+            except:
+                pass
     
-    print(f"\n📊 移动完成: 成功 {moved}, 跳过 {skipped}")
-    
-    # 尝试删除空的Unicode文件夹
-    try:
-        remaining = os.listdir(unicode_folder)
-        if not remaining:
-            os.rmdir(unicode_folder)
-            print("🗑️  删除空的Unicode文件夹")
-        else:
-            print(f"⚠️  Unicode文件夹还有 {len(remaining)} 个文件未移动")
-    except Exception as e:
-        print(f"⚠️  无法删除Unicode文件夹: {e}")
+    print(f"\n=== 汇总 ===")
+    print(f"发现文件总数: {total_found}")
+    print(f"成功移动文件: {total_moved}")
 
 if __name__ == "__main__":
-    move_files()
+    print("=== 移动Unicode路径文件到标准路径 ===")
+    move_unicode_files_to_standard()
+    print("=== 完成 ===")

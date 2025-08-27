@@ -87,12 +87,13 @@ class InstagramDownloader(IDownloader):
         self.logger = Logger(account.name)
         
         try:
-            # 创建安全的 Instaloader 实例，限制请求频率和禁用输出
+            # 创建 Instaloader 实例，启用元数据保存
             self.loader = Instaloader(
                 max_connection_attempts=3,  # 最大连接尝试次数
                 request_timeout=10,        # 请求超时时间
-                quiet=True,                # 禁用输出
-                save_metadata=False        # 不保存元数据文件
+                quiet=False,               # 启用输出，便于调试
+                save_metadata=True,        # 保存元数据文件 - 重要！
+                compress_json=True         # 压缩json文件
             )
             
             # 尝试从 session 文件登录
@@ -248,25 +249,108 @@ class InstagramDownloader(IDownloader):
                     download_folder = clean_unicode_path(download_folder)
                     os.makedirs(download_folder, exist_ok=True)
                     
-                    # 静默下载帖子，抑制错误输出
-                    with self.suppress_instaloader_errors():
-                        self.loader.download_post(post, target=download_folder)
+                    # 记录下载前的文件状态
+                    files_before = set(os.listdir(download_folder))
                     
-                    # 记录下载成功
-                    post_obj = Post(
-                        shortcode=shortcode,
-                        url=f"https://www.instagram.com/p/{shortcode}/",
-                        caption=post.caption or "",
-                        date=post.date_utc
-                    )
-                    posts.append(post_obj)
+                    # 下载帖子，显示输出便于调试
+                    print(f"🔄 开始下载 {shortcode}")
+                    download_start_time = time.time()
+                    self.loader.download_post(post, target=download_folder)
+                    print(f"🔄 下载调用完成")
                     
-                    # 静默记录下载成功，不显示日志
-                    self.logger.record_download(shortcode, "success", download_folder, folder=download_folder, blogger=post_owner)
-                    downloaded_count += 1
+                    # 检查下载后的文件状态 - 同时检查标准路径和Unicode路径
+                    files_after = set(os.listdir(download_folder))
+                    new_files = files_after - files_before
                     
-                    # 计算进度和用时
-                    progress = (downloaded_count / actual_download_count) * 100
+                    # 检查Unicode路径中的新文件
+                    unicode_download_folder = download_folder.replace('\\', '﹨')
+                    unicode_new_files = set()
+                    if os.path.exists(unicode_download_folder):
+                        try:
+                            unicode_files_after = set(os.listdir(unicode_download_folder))
+                            
+                            # 检查在下载过程中修改的文件（时间戳检查）
+                            download_end_time = time.time()
+                            recent_files = []
+                            for f in unicode_files_after:
+                                file_path = os.path.join(unicode_download_folder, f)
+                                if os.path.isfile(file_path):
+                                    file_mtime = os.path.getmtime(file_path)
+                                    # 如果文件修改时间在下载时间范围内
+                                    if download_start_time <= file_mtime <= download_end_time:
+                                        recent_files.append(f)
+                            
+                            unicode_new_files = set(recent_files)
+                            if unicode_new_files:
+                                print(f"✅ Unicode路径中发现新文件: {list(unicode_new_files)}")
+                                
+                        except Exception as e:
+                            print(f"⚠️  检查Unicode路径时出错: {e}")
+                    
+                    # 判断下载是否真正成功
+                    download_success = bool(new_files or unicode_new_files)
+                    
+                    if download_success:
+                        # 如果文件在Unicode路径中，移动到标准路径
+                        if unicode_new_files and not new_files:
+                            print(f"📁 正在移动文件从Unicode路径到标准路径...")
+                            import shutil
+                            for filename in unicode_new_files:
+                                src_path = os.path.join(unicode_download_folder, filename)
+                                dst_path = os.path.join(download_folder, filename)
+                                try:
+                                    shutil.move(src_path, dst_path)
+                                    print(f"✅ 移动文件: {filename}")
+                                except Exception as e:
+                                    print(f"⚠️  移动文件失败 {filename}: {e}")
+                            
+                            # 检查Unicode目录中是否还有其他相关文件（jpg, mp4, txt等）
+                            if os.path.exists(unicode_download_folder):
+                                all_unicode_files = os.listdir(unicode_download_folder)
+                                # 根据最新下载的json文件名推断其他文件
+                                for json_file in unicode_new_files:
+                                    if json_file.endswith('.json.xz'):
+                                        base_name = json_file.replace('.json.xz', '')
+                                        related_files = [f for f in all_unicode_files if f.startswith(base_name)]
+                                        for related_file in related_files:
+                                            if related_file not in unicode_new_files:  # 避免重复移动
+                                                src_path = os.path.join(unicode_download_folder, related_file)
+                                                dst_path = os.path.join(download_folder, related_file)
+                                                try:
+                                                    shutil.move(src_path, dst_path)
+                                                    print(f"✅ 移动相关文件: {related_file}")
+                                                except Exception as e:
+                                                    print(f"⚠️  移动相关文件失败 {related_file}: {e}")
+                        
+                        # 记录下载成功
+                        post_obj = Post(
+                            shortcode=shortcode,
+                            url=f"https://www.instagram.com/p/{shortcode}/",
+                            caption=post.caption or "",
+                            date=post.date_utc
+                        )
+                        posts.append(post_obj)
+                        
+                        # 记录下载成功
+                        self.logger.record_download(shortcode, "success", download_folder, folder=download_folder, blogger=post_owner)
+                        downloaded_count += 1
+                        
+                        # 显示找到的文件
+                        if new_files:
+                            print(f"✅ 标准路径新文件: {list(new_files)}")
+                        elif unicode_new_files:
+                            print(f"✅ Unicode路径新文件: {list(unicode_new_files)}")
+                        else:
+                            print(f"✅ 下载成功确认")
+                    else:
+                        # 下载失败或跳过
+                        print(f"⚠️  未找到 {shortcode} 的文件，可能被跳过")
+                        self.logger.record_download(shortcode, "skipped", download_folder, error="文件未找到", folder=download_folder, blogger=post_owner)
+                        skipped_count += 1
+                    
+                    # 计算进度和用时（基于处理总数）
+                    processed_count = downloaded_count + skipped_count
+                    progress = (processed_count / actual_download_count) * 100
                     elapsed_time = time.time() - start_time
                     
                     # 格式化时间显示
@@ -281,10 +365,10 @@ class InstagramDownloader(IDownloader):
                     progress_bar = "█" * int(progress // 5) + "░" * (20 - int(progress // 5))
                     
                     # 使用 \r 回到行首，覆盖之前的进度条
-                    print(f"\r下载进度: ({downloaded_count}/{actual_download_count}) [{progress:.1f}%] [{progress_bar}] 用时: {time_str}", end="", flush=True)
+                    print(f"\r下载进度: ({processed_count}/{actual_download_count}) [成功:{downloaded_count} 跳过:{skipped_count}] [{progress:.1f}%] [{progress_bar}] 用时: {time_str}", end="", flush=True)
                     
-                    # 如果是最后一个，换行
-                    if downloaded_count == actual_download_count:
+                    # 如果处理完所有计划的视频，换行并显示完成
+                    if processed_count >= actual_download_count:
                         print()  # 换行
                         self.logger.success(f"下载完成")
                     
