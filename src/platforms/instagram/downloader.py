@@ -177,6 +177,11 @@ class InstagramDownloader(IDownloader):
             # 直接使用账号名显示
             self.logger.info(f"开始下载任务：{account.name}")
             
+            # 同步缺失的下载记录（重要！确保扫描准确性）
+            sync_count = self.logger.sync_missing_downloads()
+            if sync_count > 0:
+                self.logger.info(f"已同步 {sync_count} 个已存在但未记录的视频")
+            
             # 初始化文件夹管理器
             folder_manager = FolderManager(account.name, account_config)
             
