@@ -140,3 +140,4 @@ User Data/
 # 大文件通用规则
 *.dll
 *.exe
+videos/download_logs/*.json 
