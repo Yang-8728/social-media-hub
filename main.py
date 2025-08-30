@@ -7,7 +7,8 @@ import os
 import json
 
 from src.core.models import Account
-from src.platforms.instagram.downloader import InstagramDownloader
+# from src.platforms.instagram.downloader import InstagramDownloader
+from src.platforms.bilibili.uploader import BilibiliUploader
 from src.utils.logger import Logger
 from src.utils.video_merger import VideoMerger
 from src.utils.folder_manager import FolderManager
@@ -199,6 +200,36 @@ def show_status(account_name: str = None):
         print(f"   合并文件夹: {folder_info['total_merged_folders']} 个")
 
 
+def run_upload(video_path: str, account_name: str):
+    """上传视频到Bilibili"""
+    print(f"🚀 上传视频: {video_path}")
+    print(f"📱 账号: {account_name}")
+    
+    try:
+        # 验证文件存在
+        if not os.path.exists(video_path):
+            print(f"❌ 视频文件不存在: {video_path}")
+            return False
+        
+        # 创建上传器
+        uploader = BilibiliUploader(account_name)
+        
+        # 执行上传
+        result = uploader.upload(video_path)
+        
+        # 显示结果
+        if result:
+            print(f"✅ 上传完成！")
+            return True
+        else:
+            print(f"❌ 上传失败")
+            return False
+            
+    except Exception as e:
+        print(f"❌ 上传过程发生异常: {e}")
+        return False
+
+
 def main():
     """主程序入口"""
     parser = argparse.ArgumentParser(description="Social Media Hub - 企业级社交媒体内容管理")
@@ -212,6 +243,7 @@ def main():
     parser.add_argument("--stats", action="store_true", help="显示详细统计")
     parser.add_argument("--clean", action="store_true", help="清理空文件夹")
     parser.add_argument("--backup", action="store_true", help="备份日志文件")
+    parser.add_argument("--upload", type=str, help="上传视频文件到Bilibili")
     
     # 账号参数
     parser.add_argument("--ai_vanvan", action="store_true", help="使用 ai_vanvan 账号 (搞笑)")
@@ -267,12 +299,20 @@ def main():
         else:
             print("❌ 搜索博主时请指定账号 (--ai_vanvan, --aigf8728, 或 --account <name>)")
     
+    elif args.upload:
+        if account_name:
+            run_upload(args.upload, account_name)
+        else:
+            # 默认使用ai_vanvan账号
+            run_upload(args.upload, "ai_vanvan")
+    
     else:
         # 默认显示帮助
         parser.print_help()
         print("\n💡 常用命令示例:")
         print("   python main.py --download --ai_vanvan --limit 5     # 下载 ai_vanvan 的 5 个内容")
         print("   python main.py --merge --ai_vanvan                  # 合并 ai_vanvan 的视频")
+        print("   python main.py --upload video.mp4 --ai_vanvan      # 上传视频到Bilibili")
         print("   python main.py --status                          # 查看所有账号状态")
         print("   python main.py --folders --ai_vanvan                # 查看 ai_vanvan 文件夹")
         print("   python main.py --search 博主名 --aigf8728            # 搜索 aigf8728 中的博主文件夹")

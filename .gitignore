@@ -121,3 +121,22 @@ tools/debug_*.py
 
 # FFmpeg工具 - 太大不上传 (260MB)
 tools/ffmpeg/
+
+# Chrome浏览器二进制文件 - 太大不上传 (100MB+)
+tools/chrome/
+**/chrome-win64/
+**/chrome.dll
+**/chrome.exe
+chrome*.dll
+chrome*.exe
+
+# 配置文件和缓存
+profile*/
+profiles/
+**/Default/
+**/Profile*/
+User Data/
+
+# 大文件通用规则
+*.dll
+*.exe

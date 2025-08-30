@@ -384,3 +384,34 @@ class IDownloader(ABC):
             bool: 设置是否成功
         """
         pass
+
+
+class IUploader(ABC):
+    """上传器接口"""
+    
+    @abstractmethod
+    def login(self, account: Any) -> bool:
+        """
+        登录账号
+        
+        Args:
+            account: 账户对象
+            
+        Returns:
+            bool: 登录是否成功
+        """
+        pass
+    
+    @abstractmethod
+    def upload_video(self, account: Any, video: Any) -> Any:
+        """
+        上传视频
+        
+        Args:
+            account: 账户对象
+            video: 视频对象
+            
+        Returns:
+            Any: 上传结果
+        """
+        pass
