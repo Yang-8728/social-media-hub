@@ -5,9 +5,10 @@ Social Media Hub - 主程序
 import argparse
 import os
 import json
+import time
 
 from src.core.models import Account
-# from src.platforms.instagram.downloader import InstagramDownloader
+from src.platforms.instagram.downloader import InstagramDownloader
 from src.platforms.bilibili.uploader import BilibiliUploader
 from src.utils.logger import Logger
 from src.utils.video_merger import VideoMerger
@@ -59,13 +60,13 @@ def run_download(account_name: str, limit: int):
     # 加载配置
     config = load_account_config()
     if not config:
-        return
+        return False
     
     # 创建账号
     account = create_account_from_config(account_name, config)
     if not account.username:
         print(f"❌ 账号配置不完整: {account_name}")
-        return
+        return False
     
     # 初始化下载器
     downloader = InstagramDownloader()
@@ -73,16 +74,29 @@ def run_download(account_name: str, limit: int):
     # 登录
     if not downloader.login(account):
         print(f"❌ 登录失败: {account.username}")
-        return
+        return False
     
     # 下载内容
     results = downloader.download_posts(account, limit)
     
+    # 判断是否成功：至少有一个成功，或者没有任何下载任务时也视为成功
+    if len(results) == 0:
+        print("ℹ️ 没有新内容需要下载")
+        return True
+    
+    success_count = 0
+    total_count = len(results)
+    
     for result in results:
         if result.success:
             print(f"✅ 下载成功: {result.message}")
+            success_count += 1
         else:
             print(f"❌ 下载失败: {result.error}")
+    
+    success = success_count > 0
+    print(f"📊 下载完成: {success_count}/{total_count} 成功")
+    return success
 
 
 def run_merge(account_name: str, limit: int = None):
@@ -99,6 +113,10 @@ def run_merge(account_name: str, limit: int = None):
     result = merger.merge_unmerged_videos(limit=limit)
     
     print(f"✅ 合并完成 - 成功: {result['merged']}, 跳过: {result['skipped']}, 失败: {result['failed']}")
+    
+    # 判断是否成功：有成功合并的视频，或者没有需要合并的视频时也视为成功
+    success = result['merged'] > 0 or (result['merged'] == 0 and result['failed'] == 0)
+    return success
 
 
 def show_folders(account_name: str = None):
@@ -233,6 +251,99 @@ def run_upload(video_path: str, account_name: str, category: str = "小剧场", 
         return False
 
 
+def run_full_pipeline(account_name: str, download_limit: int = 5):
+    """运行完整流程：下载 → 合并 → 上传"""
+    print(f"🚀 开始执行完整流程: {account_name}")
+    print("="*60)
+    
+    try:
+        # 步骤1: 下载内容
+        print("📥 步骤1/3: 下载最新内容...")
+        print("-" * 40)
+        success_download = run_download(account_name, download_limit)
+        if not success_download:
+            print("❌ 下载失败，停止流程")
+            return False
+        
+        print("✅ 下载完成！")
+        time.sleep(2)  # 短暂等待
+        
+        # 步骤2: 合并视频
+        print("\n🔄 步骤2/3: 合并视频...")
+        print("-" * 40)
+        success_merge = run_merge(account_name, limit=None)  # 合并所有未合并的视频
+        if not success_merge:
+            print("❌ 合并失败，停止流程")
+            return False
+            
+        print("✅ 视频合并完成！")
+        time.sleep(2)  # 短暂等待
+        
+        # 步骤3: 获取最新合并的视频并上传
+        print("\n📤 步骤3/3: 上传最新视频到B站...")
+        print("-" * 40)
+        
+        # 查找最新合并的视频
+        latest_video = find_latest_merged_video(account_name)
+        if not latest_video:
+            print("❌ 未找到可上传的视频文件")
+            return False
+            
+        print(f"📹 找到最新视频: {os.path.basename(latest_video)}")
+        
+        # 上传视频
+        success_upload = run_upload(latest_video, account_name, "小剧场", "搞笑研究所")
+        if not success_upload:
+            print("❌ 上传失败")
+            return False
+            
+        print("✅ 上传完成！")
+        
+        # 完成
+        print("\n" + "="*60)
+        print(f"🎉 {account_name} 完整流程执行成功！")
+        print("📥 下载 ✅ → 🔄 合并 ✅ → 📤 上传 ✅")
+        print("="*60)
+        return True
+        
+    except Exception as e:
+        print(f"❌ 完整流程执行失败: {e}")
+        return False
+
+
+def find_latest_merged_video(account_name: str) -> str:
+    """查找最新合并的视频文件"""
+    try:
+        # 加载配置
+        config = load_account_config()
+        account_config = config.get(account_name, {})
+        
+        # 获取合并文件夹路径
+        folder_manager = FolderManager(account_name, account_config)
+        folder_info = folder_manager.get_folder_info()
+        
+        base_merged_dir = folder_info['base_merged_dir']
+        
+        # 查找所有视频文件
+        video_files = []
+        for root, dirs, files in os.walk(base_merged_dir):
+            for file in files:
+                if file.lower().endswith(('.mp4', '.avi', '.mov', '.mkv')):
+                    full_path = os.path.join(root, file)
+                    video_files.append(full_path)
+        
+        if not video_files:
+            return None
+            
+        # 按修改时间排序，返回最新的
+        video_files.sort(key=os.path.getmtime, reverse=True)
+        return video_files[0]
+        
+    except Exception as e:
+        print(f"⚠️ 查找最新视频失败: {e}")
+        return None
+
+
 def main():
     """主程序入口"""
     parser = argparse.ArgumentParser(description="Social Media Hub - 企业级社交媒体内容管理")
@@ -272,7 +383,16 @@ def main():
         account_name = args.account
     
     # 执行命令
-    if args.download:
+    # 检查是否只指定了账号参数（全流程）
+    has_action = any([args.download, args.merge, args.status, args.folders, 
+                     args.search, args.stats, args.clean, args.backup, args.upload])
+    
+    if account_name and not has_action:
+        # 只指定账号，执行全流程
+        print(f"🎯 检测到纯账号参数，执行完整流程...")
+        run_full_pipeline(account_name, args.limit)
+        
+    elif args.download:
         if account_name:
             run_download(account_name, args.limit)
         elif args.all:
@@ -315,6 +435,7 @@ def main():
         # 默认显示帮助
         parser.print_help()
         print("\n💡 常用命令示例:")
+        print("   python main.py --ai_vanvan                          # 一键执行：下载→合并→上传 全流程")
         print("   python main.py --download --ai_vanvan --limit 5     # 下载 ai_vanvan 的 5 个内容")
         print("   python main.py --merge --ai_vanvan                  # 合并 ai_vanvan 的视频")
         print("   python main.py --upload video.mp4 --ai_vanvan      # 上传视频到Bilibili（默认：小剧场-搞笑研究所）")

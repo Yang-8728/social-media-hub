@@ -249,36 +249,37 @@ class VideoMerger:
             self.logger.warning(f"下载目录不存在: {downloads_base}")
             return {"merged": 0, "skipped": 0, "failed": 0}
         
-        # 收集所有视频文件
-        all_videos = []
-        for date_dir in os.listdir(downloads_base):
-            date_path = os.path.join(downloads_base, date_dir)
-            if os.path.isdir(date_path):
-                videos = glob.glob(os.path.join(date_path, "*.mp4"))
-                all_videos.extend(videos)
+        # 只收集今天的视频文件（新下载的）
+        today = datetime.now().strftime("%Y-%m-%d")
+        today_path = os.path.join(downloads_base, today)
         
-        if not all_videos:
-            self.logger.info("没有找到需要合并的视频文件")
+        unmerged_videos = []
+        if os.path.exists(today_path):
+            videos = glob.glob(os.path.join(today_path, "*.mp4"))
+            unmerged_videos.extend(videos)
+        
+        if not unmerged_videos:
+            self.logger.info("没有找到今天新下载的视频文件")
             return {"merged": 0, "skipped": 0, "failed": 0}
         
         # 按修改时间排序，最新的在前
-        all_videos.sort(key=lambda x: os.path.getmtime(x), reverse=True)
+        unmerged_videos.sort(key=lambda x: os.path.getmtime(x), reverse=True)
         
         # 应用数量限制
         if limit:
-            merge_videos = all_videos[:limit]
-            self.logger.info(f"找到 {len(all_videos)} 个视频，合并最新的 {len(merge_videos)} 个")
+            merge_videos = unmerged_videos[:limit]
+            self.logger.info(f"今天下载了 {len(unmerged_videos)} 个视频，合并最新的 {len(merge_videos)} 个")
         else:
-            merge_videos = all_videos
-            self.logger.info(f"找到 {len(all_videos)} 个视频，准备全部合并")
+            merge_videos = unmerged_videos
+            self.logger.info(f"今天下载了 {len(unmerged_videos)} 个视频，准备全部合并")
         
         # 创建合并输出目录
         merge_dir = os.path.join("videos", "merged", self.account_name)
         os.makedirs(merge_dir, exist_ok=True)
         
-        # 生成输出文件名
+        # 生成输出文件名 - 简化格式：只保留日期时间
         timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-        output_filename = f"{self.account_name}_{timestamp}_merged_{len(merge_videos)}videos.mp4"
+        output_filename = f"{timestamp}.mp4"
         output_path = os.path.join(merge_dir, output_filename)
         
         # 询问用户是否使用智能分辨率统一
