@@ -121,11 +121,72 @@ class BilibiliUploader(IUploader):
             except:
                 print("⚠️ 无法自动填写标题，请手动填写")
             
-            print("✅ 视频上传成功！")
-            print("🎬 浏览器将保持打开，您可以手动完成其他设置并发布")
-            
-            # 不自动关闭浏览器，让用户手动操作
-            input("按Enter键关闭浏览器...")
+            # 尝试自动点击“立即投稿/发布/提交”按钮
+            try:
+                print("🔍 寻找并点击“立即投稿/发布/提交”按钮...")
+                clicked = False
+                submit_selectors = [
+                    (By.XPATH, "//button[.//span[contains(text(),'立即投稿')] or contains(normalize-space(.), '立即投稿')]") ,
+                    (By.XPATH, "//button[contains(normalize-space(.), '发布')]"),
+                    (By.XPATH, "//button[contains(normalize-space(.), '提交')]"),
+                    (By.XPATH, "//button[contains(normalize-space(.), '投稿')]")
+                ]
+
+                # 轮询等待可点击
+                end_time = time.time() + 30
+                while time.time() < end_time and not clicked:
+                    for by, sel in submit_selectors:
+                        try:
+                            btn = WebDriverWait(self.driver, 5).until(EC.element_to_be_clickable((by, sel)))
+                            self.driver.execute_script("arguments[0].scrollIntoView({block: 'center'});", btn)
+                            time.sleep(0.2)
+                            try:
+                                btn.click()
+                            except Exception:
+                                self.driver.execute_script("arguments[0].click();", btn)
+                            print("✅ 已点击提交按钮")
+                            clicked = True
+                            break
+                        except Exception:
+                            continue
+                    if not clicked:
+                        time.sleep(1)
+
+                # 若有确认弹窗，尝试点击“确定/确认/继续”
+                if clicked:
+                    try:
+                        confirm = WebDriverWait(self.driver, 5).until(EC.element_to_be_clickable((
+                            By.XPATH,
+                            "//button[contains(normalize-space(.), '确定') or contains(normalize-space(.), '确认') or contains(normalize-space(.), '继续') or contains(normalize-space(.), '我知道了')]"
+                        )))
+                        self.driver.execute_script("arguments[0].scrollIntoView({block: 'center'});", confirm)
+                        time.sleep(0.2)
+                        try:
+                            confirm.click()
+                        except Exception:
+                            self.driver.execute_script("arguments[0].click();", confirm)
+                        print("✅ 已点击确认按钮")
+                    except Exception:
+                        pass
+
+                    # 等待跳转或成功提示
+                    try:
+                        WebDriverWait(self.driver, 20).until(
+                            EC.any_of(
+                                EC.url_contains("manage"),
+                                EC.presence_of_element_located((By.XPATH, "//*[contains(text(),'投稿成功') or contains(text(),'发布成功') or contains(text(),'提交成功')]") )
+                            )
+                        )
+                        print("� 投稿流程已提交（检测到成功信号或页面跳转）")
+                    except Exception:
+                        print("⚠️ 未检测到成功信号，可能仍需人工补充必填项")
+                else:
+                    print("⚠️ 未找到可点击的投稿按钮，可能尚未满足必填项或页面布局变化")
+            except Exception as e:
+                print(f"⚠️ 自动点击投稿按钮过程出错: {e}")
+
+            print("✅ 上传流程结束。将短暂停留供你检查，随后自动关闭浏览器...")
+            time.sleep(8)
             
             return True
             
