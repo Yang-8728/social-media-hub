@@ -55,6 +55,9 @@ videos/downloads/
 videos/merged/
 data/download_logs/
 
+# 动态序号文件（会自动更新）
+data/episode_number.txt
+
 # Unicode路径的下载内容（修复Windows Unicode路径问题）
 videos﹨downloads﹨*/
 videos﹨merged﹨*/

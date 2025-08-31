@@ -134,17 +134,56 @@ class BilibiliUploader(IUploader):
             return False
     
     def _set_title(self, video_path: str):
-        """快速设置标题"""
+        """智能设置标题 - 使用ins海外离大谱#序号格式"""
         try:
             title_input = self.wait.until(
                 EC.presence_of_element_located((By.CSS_SELECTOR, "input[placeholder*='标题'], input[placeholder*='请填写标题']"))
             )
             title_input.clear()
-            title = f"AI助手自动上传 - {os.path.basename(video_path)}"
+            
+            # 生成正确的标题格式
+            title = self._generate_title()
             title_input.send_keys(title)
             print(f"📝 标题已设置: {title}")
         except:
             print("⚠️ 无法自动填写标题，请手动填写")
+    
+    def _generate_title(self) -> str:
+        """生成标题 - ins海外离大谱#序号格式"""
+        try:
+            # 获取当前序号
+            current_number = self._get_next_episode_number()
+            title = f"ins海外离大谱#{current_number}"
+            return title
+        except Exception as e:
+            print(f"⚠️ 生成标题失败: {e}")
+            # 如果获取序号失败，使用默认格式
+            return "ins海外离大谱#84"
+    
+    def _get_next_episode_number(self) -> int:
+        """获取下一个集数序号"""
+        try:
+            # 方法1: 从序号文件读取
+            sequence_file = "c:/Code/social-media-hub/data/episode_number.txt"
+            if os.path.exists(sequence_file):
+                with open(sequence_file, 'r', encoding='utf-8') as f:
+                    current_number = int(f.read().strip())
+                    
+                # 更新序号文件
+                with open(sequence_file, 'w', encoding='utf-8') as f:
+                    f.write(str(current_number + 1))
+                    
+                return current_number
+            else:
+                # 如果文件不存在，创建并从84开始
+                os.makedirs(os.path.dirname(sequence_file), exist_ok=True)
+                with open(sequence_file, 'w', encoding='utf-8') as f:
+                    f.write("85")  # 下次从85开始
+                return 84
+                
+        except Exception as e:
+            print(f"⚠️ 获取序号失败: {e}")
+            return 84  # 默认从84开始
     
     def _set_category_fast(self, category: str, subcategory: str = None):
         """优化的快速设置分区 - 避免误点击分区合集"""
