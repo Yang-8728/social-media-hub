@@ -4,6 +4,7 @@
 import os
 import subprocess
 import glob
+import json
 from datetime import datetime
 from typing import Dict, List, Any
 
@@ -18,6 +19,9 @@ class VideoMerger:
         self.account_name = account_name
         self.logger = Logger(account_name) if account_name else Logger("video_merger")
         
+        # 合并记录文件路径
+        self.merged_record_file = os.path.join("data", f"merged_videos_{account_name}.json") if account_name else None
+        
         # 简化版FolderManager，不需要完整配置
         if account_name:
             # 从main.py加载配置
@@ -31,6 +35,54 @@ class VideoMerger:
                 self.folder_manager = None
         else:
             self.folder_manager = None
+    
+    def load_merged_record(self) -> Dict[str, Any]:
+        """加载已合并视频记录"""
+        if not self.merged_record_file or not os.path.exists(self.merged_record_file):
+            return {"merged_videos": []}
+        
+        try:
+            with open(self.merged_record_file, 'r', encoding='utf-8') as f:
+                return json.load(f)
+        except Exception as e:
+            self.logger.warning(f"加载合并记录失败: {e}")
+            return {"merged_videos": []}
+    
+    def save_merged_record(self, record: Dict[str, Any]):
+        """保存已合并视频记录"""
+        if not self.merged_record_file:
+            return
+        
+        try:
+            with open(self.merged_record_file, 'w', encoding='utf-8') as f:
+                json.dump(record, f, ensure_ascii=False, indent=2)
+        except Exception as e:
+            self.logger.error(f"保存合并记录失败: {e}")
+    
+    def add_merged_videos(self, video_paths: List[str], output_path: str):
+        """添加已合并的视频记录"""
+        record = self.load_merged_record()
+        
+        merge_info = {
+            "timestamp": datetime.now().isoformat(),
+            "output_file": output_path,
+            "input_videos": [os.path.abspath(v) for v in video_paths],
+            "input_count": len(video_paths)
+        }
+        
+        record["merged_videos"].append(merge_info)
+        self.save_merged_record(record)
+        self.logger.info(f"记录已合并视频: {len(video_paths)} 个文件 -> {os.path.basename(output_path)}")
+    
+    def is_video_merged(self, video_path: str) -> bool:
+        """检查视频是否已经被合并过"""
+        record = self.load_merged_record()
+        video_abs_path = os.path.abspath(video_path)
+        
+        for merge_info in record["merged_videos"]:
+            if video_abs_path in merge_info.get("input_videos", []):
+                return True
+        return False
     
     def get_latest_videos(self, directory: str, count: int = 8) -> List[str]:
         """获取最新的N个视频文件"""
@@ -253,14 +305,31 @@ class VideoMerger:
         today = datetime.now().strftime("%Y-%m-%d")
         today_path = os.path.join(downloads_base, today)
         
-        unmerged_videos = []
+        all_today_videos = []
         if os.path.exists(today_path):
             videos = glob.glob(os.path.join(today_path, "*.mp4"))
-            unmerged_videos.extend(videos)
+            all_today_videos.extend(videos)
         
-        if not unmerged_videos:
+        if not all_today_videos:
             self.logger.info("没有找到今天新下载的视频文件")
             return {"merged": 0, "skipped": 0, "failed": 0}
+        
+        # **关键改进：过滤掉已经被合并过的视频**
+        unmerged_videos = []
+        skipped_count = 0
+        for video in all_today_videos:
+            if self.is_video_merged(video):
+                skipped_count += 1
+                self.logger.debug(f"跳过已合并视频: {os.path.basename(video)}")
+            else:
+                unmerged_videos.append(video)
+        
+        if skipped_count > 0:
+            self.logger.info(f"今天找到 {len(all_today_videos)} 个视频，其中 {skipped_count} 个已合并，{len(unmerged_videos)} 个待合并")
+        
+        if not unmerged_videos:
+            self.logger.info("今天所有视频都已经合并过了，无需重复合并")
+            return {"merged": 0, "skipped": skipped_count, "failed": 0}
         
         # 按修改时间排序，最新的在前
         unmerged_videos.sort(key=lambda x: os.path.getmtime(x), reverse=True)
@@ -268,10 +337,10 @@ class VideoMerger:
         # 应用数量限制
         if limit:
             merge_videos = unmerged_videos[:limit]
-            self.logger.info(f"今天下载了 {len(unmerged_videos)} 个视频，合并最新的 {len(merge_videos)} 个")
+            self.logger.info(f"准备合并最新的 {len(merge_videos)} 个视频（剩余 {len(unmerged_videos) - len(merge_videos)} 个）")
         else:
             merge_videos = unmerged_videos
-            self.logger.info(f"今天下载了 {len(unmerged_videos)} 个视频，准备全部合并")
+            self.logger.info(f"准备合并全部 {len(unmerged_videos)} 个未合并视频")
         
         # 创建合并输出目录
         merge_dir = os.path.join("videos", "merged", self.account_name)
@@ -305,9 +374,11 @@ class VideoMerger:
         
         # 执行合并
         if success:
-            return {"merged": 1, "skipped": 0, "failed": 0}
+            # **关键改进：记录已合并的视频**
+            self.add_merged_videos(merge_videos, output_path)
+            return {"merged": 1, "skipped": skipped_count, "failed": 0}
         else:
-            return {"merged": 0, "skipped": 0, "failed": 1}
+            return {"merged": 0, "skipped": skipped_count, "failed": 1}
 
     def merge_videos(self, input_files, output_file):
         """合并视频文件 - 兼容性方法"""
