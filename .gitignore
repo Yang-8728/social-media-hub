@@ -41,11 +41,14 @@ temp/
 logs/
 *.log
 
-# 敏感信息
-config/accounts.json
+# 敏感信息  
 config/secrets.json
 *_session
 *.session
+
+# 重要配置文件 - 需要保留
+!config/accounts.json
+!config/accounts.json.template
 
 # 下载的内容（太大，不适合git）
 videos/downloads/
@@ -141,3 +144,5 @@ User Data/
 *.dll
 *.exe
 videos/download_logs/*.json 
+data/*.json  
+data/.sync_cache_*.json 
