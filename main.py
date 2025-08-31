@@ -222,10 +222,10 @@ def run_upload(video_path: str, account_name: str, category: str = "小剧场", 
         
         # 显示结果
         if result:
-            print(f"✅ 上传完成！")
+            print(f"✅ 上传流程完成！已自动关闭浏览器")
             return True
         else:
-            print(f"❌ 上传失败")
+            print(f"⚠️ 上传流程未完成，请检查浏览器手动完成")
             return False
             
     except Exception as e:

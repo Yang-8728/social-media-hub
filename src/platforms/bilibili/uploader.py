@@ -389,30 +389,42 @@ class BilibiliUploader(IUploader):
                     except Exception:
                         pass
 
-                    # 等待跳转或成功提示
+                    # 等待"稿件投递成功"提示
+                    print("🔍 等待稿件投递成功提示...")
                     try:
-                        WebDriverWait(self.driver, 20).until(
-                            EC.any_of(
-                                EC.url_contains("manage"),
-                                EC.presence_of_element_located((By.XPATH, "//*[contains(text(),'投稿成功') or contains(text(),'发布成功') or contains(text(),'提交成功')]") )
-                            )
+                        # 专门检测"稿件投递成功"文字
+                        success_element = WebDriverWait(self.driver, 120).until(
+                            EC.presence_of_element_located((By.XPATH, "//*[contains(text(),'稿件投递成功')]"))
                         )
-                        print("� 投稿流程已提交（检测到成功信号或页面跳转）")
+                        print("🎉 检测到'稿件投递成功'提示！")
+                        
+                        # 截图保存成功状态
+                        try:
+                            import datetime
+                            now = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+                            screenshot_dir = "c:/Code/social-media-hub/temp"
+                            os.makedirs(screenshot_dir, exist_ok=True)
+                            screenshot_path = f"{screenshot_dir}/稿件投递成功_{now}.png"
+                            self.driver.save_screenshot(screenshot_path)
+                            print(f"📸 已保存成功截图: {screenshot_path}")
+                        except Exception as e:
+                            print(f"⚠️ 截图保存失败: {e}")
+                            
+                        print("✅ 稿件投递成功！1秒后关闭浏览器...")
+                        time.sleep(1)  # 成功后1秒关闭
+                        self.driver.quit()
+                        return True
+                        
                     except Exception:
-                        print("⚠️ 未检测到成功信号，可能仍需人工补充必填项")
+                        print("⚠️ 等待120秒后未检测到'稿件投递成功'，可能仍需人工补充必填项")
+                        return False
                 else:
                     print("⚠️ 未找到可点击的投稿按钮，可能尚未满足必填项或页面布局变化")
+                    return False
             except Exception as e:
                 print(f"⚠️ 自动点击投稿按钮过程出错: {e}")
-
-            print("✅ 上传流程结束。将短暂停留供你检查，随后自动关闭浏览器...")
-            time.sleep(8)
-            
-            return True
+                return False
             
         except Exception as e:
             print(f"❌ 上传失败: {e}")
             return False
-        finally:
-            if self.driver:
-                self.driver.quit()
