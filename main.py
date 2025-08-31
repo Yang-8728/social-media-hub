@@ -200,10 +200,13 @@ def show_status(account_name: str = None):
         print(f"   合并文件夹: {folder_info['total_merged_folders']} 个")
 
 
-def run_upload(video_path: str, account_name: str):
+def run_upload(video_path: str, account_name: str, category: str = "小剧场", subcategory: str = "搞笑研究所"):
     """上传视频到Bilibili"""
     print(f"🚀 上传视频: {video_path}")
     print(f"📱 账号: {account_name}")
+    print(f"🏷️ 分区: {category}")
+    if subcategory:
+        print(f"🏷️ 子分区: {subcategory}")
     
     try:
         # 验证文件存在
@@ -215,7 +218,7 @@ def run_upload(video_path: str, account_name: str):
         uploader = BilibiliUploader(account_name)
         
         # 执行上传
-        result = uploader.upload(video_path)
+        result = uploader.upload(video_path, category, subcategory)
         
         # 显示结果
         if result:
@@ -244,6 +247,8 @@ def main():
     parser.add_argument("--clean", action="store_true", help="清理空文件夹")
     parser.add_argument("--backup", action="store_true", help="备份日志文件")
     parser.add_argument("--upload", type=str, help="上传视频文件到Bilibili")
+    parser.add_argument("--category", type=str, default="小剧场", help="B站分区类别（生活/娱乐/科技/游戏/小剧场等）")
+    parser.add_argument("--subcategory", type=str, default="搞笑研究所", help="B站子分区（如：搞笑研究所）")
     
     # 账号参数
     parser.add_argument("--ai_vanvan", action="store_true", help="使用 ai_vanvan 账号 (搞笑)")
@@ -301,10 +306,10 @@ def main():
     
     elif args.upload:
         if account_name:
-            run_upload(args.upload, account_name)
+            run_upload(args.upload, account_name, args.category, args.subcategory)
         else:
             # 默认使用ai_vanvan账号
-            run_upload(args.upload, "ai_vanvan")
+            run_upload(args.upload, "ai_vanvan", args.category, args.subcategory)
     
     else:
         # 默认显示帮助
@@ -312,7 +317,9 @@ def main():
         print("\n💡 常用命令示例:")
         print("   python main.py --download --ai_vanvan --limit 5     # 下载 ai_vanvan 的 5 个内容")
         print("   python main.py --merge --ai_vanvan                  # 合并 ai_vanvan 的视频")
-        print("   python main.py --upload video.mp4 --ai_vanvan      # 上传视频到Bilibili")
+        print("   python main.py --upload video.mp4 --ai_vanvan      # 上传视频到Bilibili（默认：小剧场-搞笑研究所）")
+        print("   python main.py --upload video.mp4 --ai_vanvan --category 娱乐  # 上传到娱乐分区")
+        print("   python main.py --upload video.mp4 --ai_vanvan --category 小剧场 --subcategory 搞笑研究所  # 明确指定分区")
         print("   python main.py --status                          # 查看所有账号状态")
         print("   python main.py --folders --ai_vanvan                # 查看 ai_vanvan 文件夹")
         print("   python main.py --search 博主名 --aigf8728            # 搜索 aigf8728 中的博主文件夹")
