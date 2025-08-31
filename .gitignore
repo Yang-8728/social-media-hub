@@ -41,13 +41,13 @@ temp/
 logs/
 *.log
 
-# 敏感信息  
+# 敏感信息 - 包含真实用户名等隐私数据
+config/accounts.json
 config/secrets.json
 *_session
 *.session
 
-# 重要配置文件 - 需要保留
-!config/accounts.json
+# 重要配置文件模板 - 供参考使用
 !config/accounts.json.template
 
 # 下载的内容（太大，不适合git）
