@@ -68,7 +68,7 @@ class BatchOperations:
         
         # 备份日志文件
         log_files = glob(f"logs/*{self.account_name}*")
-        download_logs = glob(f"videos/download_logs/{self.account_name}*")
+        download_logs = glob(f"logs/downloads/{self.account_name}*")
         
         for log_file in log_files + download_logs:
             if os.path.exists(log_file):

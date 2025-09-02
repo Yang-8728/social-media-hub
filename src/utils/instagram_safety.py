@@ -12,7 +12,7 @@ class InstagramSafety:
     
     def __init__(self, account_name: str):
         self.account_name = account_name
-        self.usage_log_file = f"data/usage_logs/{account_name}_usage.json"
+        self.usage_log_file = f"logs/usage/{account_name}_usage.json"
         os.makedirs(os.path.dirname(self.usage_log_file), exist_ok=True)
     
     def check_rate_limit(self, config: Dict[str, Any]) -> bool:

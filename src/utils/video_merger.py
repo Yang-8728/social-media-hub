@@ -19,9 +19,9 @@ class VideoMerger:
         self.account_name = account_name
         self.logger = Logger(account_name) if account_name else Logger("video_merger")
         
-        # 合并记录文件路径 - 统一放到 videos/logs 目录
+        # 合并记录文件路径 - 统一放到 logs/merges 目录
         if account_name:
-            logs_dir = os.path.join("videos", "logs")
+            logs_dir = os.path.join("logs", "merges")
             os.makedirs(logs_dir, exist_ok=True)
             self.merged_record_file = os.path.join(logs_dir, f"{account_name}_merged_record.json")
         else:
@@ -78,6 +78,21 @@ class VideoMerger:
         record["merged_videos"].append(merge_info)
         self.save_merged_record(record)
         self.logger.info(f"记录已合并视频: {len(video_paths)} 个文件 -> {os.path.basename(output_path)}")
+        
+        # **新增：更新下载记录中的合并状态**
+        from .logger import Logger
+        download_logger = Logger(self.account_name)
+        
+        for video_path in video_paths:
+            # 从文件路径提取文件名，尝试匹配下载记录
+            filename = os.path.basename(video_path)
+            try:
+                # 尝试根据文件名更新下载记录的合并状态
+                download_logger.mark_as_merged_by_filename(filename, output_path)
+            except Exception as e:
+                self.logger.info(f"无法更新下载记录合并状态 {filename}: {e}")
+                # 如果根据文件名找不到，这可能是正常的（比如视频不是通过当前系统下载的）
+                pass
     
     def is_video_merged(self, video_path: str) -> bool:
         """检查视频是否已经被合并过"""

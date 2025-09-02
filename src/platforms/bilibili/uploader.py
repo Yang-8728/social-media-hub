@@ -174,33 +174,42 @@ class BilibiliUploader(IUploader):
     def _get_current_episode_number(self) -> int:
         """获取当前集数序号（不增加）"""
         try:
-            sequence_file = "c:/Code/social-media-hub/data/episode_number.txt"
+            # 按账号分开管理序号文件
+            sequence_file = f"logs/episodes/{self.account_name}_episode.txt"
             if os.path.exists(sequence_file):
                 with open(sequence_file, 'r', encoding='utf-8') as f:
                     current_number = int(f.read().strip())
                 return current_number
             else:
-                # 如果文件不存在，从84开始
-                return 84
+                # 如果文件不存在，不同账号使用不同的起始序号
+                default_numbers = {
+                    'ai_vanvan': 84,  # 当前进度
+                    'aigf8728': 1,    # 新账号从1开始
+                    'gaoxiao': 1      # 新账号从1开始
+                }
+                return default_numbers.get(self.account_name, 1)
         except Exception as e:
             print(f"⚠️ 获取当前序号失败: {e}")
-            return 84
+            return 1
     
     def _increment_episode_number(self) -> None:
         """仅在上传成功后增加序号"""
         try:
-            sequence_file = "c:/Code/social-media-hub/data/episode_number.txt"
+            # 按账号分开管理序号文件
+            sequence_file = f"logs/episodes/{self.account_name}_episode.txt"
+            
             if os.path.exists(sequence_file):
                 with open(sequence_file, 'r', encoding='utf-8') as f:
                     current_number = int(f.read().strip())
             else:
-                current_number = 84
+                # 创建目录和文件
                 os.makedirs(os.path.dirname(sequence_file), exist_ok=True)
+                current_number = self._get_current_episode_number()
             
             # 增加序号
             with open(sequence_file, 'w', encoding='utf-8') as f:
                 f.write(str(current_number + 1))
-            print(f"📈 序号已更新: {current_number} → {current_number + 1}")
+            print(f"📈 {self.account_name} 序号已更新: {current_number} → {current_number + 1}")
                 
         except Exception as e:
             print(f"⚠️ 更新序号失败: {e}")

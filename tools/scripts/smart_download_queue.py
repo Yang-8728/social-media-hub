@@ -12,11 +12,11 @@ class SmartDownloadQueue:
     
     def __init__(self, account_name: str):
         self.account_name = account_name
-        self.config_file = f"data/{account_name}_download_queue.json"
+        self.config_file = f"logs/config/{account_name}_download_queue.json"
         
     def analyze_download_pattern(self) -> Dict:
         """分析下载模式"""
-        log_file = f"data/download_logs/{self.account_name}_downloads.json"
+        log_file = f"logs/downloads/{self.account_name}_downloads.json"
         
         if not os.path.exists(log_file):
             return {"pattern": "new_user", "recommendation": "conservative"}
@@ -91,7 +91,7 @@ class SmartDownloadQueue:
     def suggest_download_time(self) -> str:
         """建议下载时间"""
         # 分析历史成功时间段
-        log_file = f"data/download_logs/{self.account_name}_downloads.json"
+        log_file = f"logs/downloads/{self.account_name}_downloads.json"
         
         if not os.path.exists(log_file):
             return "建议在用网低峰期(深夜或早晨)进行下载"

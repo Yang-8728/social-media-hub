@@ -10,7 +10,7 @@ from typing import Dict, List
 
 def sync_download_logs(account_name: str) -> Dict:
     """同步下载日志与实际文件"""
-    log_file = f"data/download_logs/{account_name}_downloads.json"
+    log_file = f"logs/downloads/{account_name}_downloads.json"
     base_dir = f"videos/downloads/{account_name}"
     
     # 读取现有日志
@@ -74,7 +74,7 @@ def sync_download_logs(account_name: str) -> Dict:
 
 def fix_missing_logs(account_name: str, missing_logs: List[Dict]) -> bool:
     """修复缺失的日志记录"""
-    log_file = f"data/download_logs/{account_name}_downloads.json"
+    log_file = f"logs/downloads/{account_name}_downloads.json"
     
     try:
         # 读取现有日志

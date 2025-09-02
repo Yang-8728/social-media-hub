@@ -21,8 +21,8 @@ class Logger:
         today = datetime.now().strftime("%Y-%m-%d")
         self.log_file = self.logs_dir / f"{today}-{account_name}.log"
         
-        # 下载记录文件
-        self.download_log_file = Path("videos") / "download_logs" / f"{account_name}_downloads.json"
+        # 下载记录文件 - 统一到logs目录
+        self.download_log_file = Path("logs") / "downloads" / f"{account_name}_downloads.json"
         self.download_log_file.parent.mkdir(parents=True, exist_ok=True)
         
     def log(self, level: str, message: str):
@@ -107,16 +107,16 @@ class Logger:
         # if blogger:
         #     self.info(f"博主: {blogger}")
     
-    def get_unmerged_downloads(self) -> List[str]:
+    def get_unmerged_downloads(self) -> List[dict]:
         """获取未合并的下载记录，按下载时间倒序排列（最新的在前）"""
         log_data = self.load_download_log()
-        unmerged = [d for d in log_data["downloads"] if d["status"] == "success" and not d["merged"]]
+        unmerged = [d for d in log_data["downloads"] if d["status"] == "success" and not d.get("merged", False)]
         
         # 按下载时间排序，最新的在前
         unmerged.sort(key=lambda x: x.get("download_time", ""), reverse=True)
         
-        # 返回shortcode列表
-        return [d["shortcode"] for d in unmerged]
+        # 返回完整记录
+        return unmerged
     
     def mark_as_merged(self, shortcode: str, merged_file_path: str):
         """标记单个视频为已合并"""
@@ -139,6 +139,43 @@ class Logger:
         self.save_download_log(log_data)
         self.success(f"标记为已合并: {shortcode} -> {merged_file_path}")
     
+    def mark_as_merged_by_filename(self, filename: str, merged_file_path: str):
+        """根据文件名标记视频为已合并"""
+        log_data = self.load_download_log()
+        
+        # 更新下载记录 - 查找匹配的文件名
+        updated = False
+        for download in log_data["downloads"]:
+            # 检查filename字段或从file_path构建的文件名
+            download_filename = download.get("filename")
+            if not download_filename and download.get("file_path"):
+                # 如果没有filename，尝试从路径和时间构建文件名
+                # 这种情况下我们只能尝试通过其他信息匹配
+                pass
+            
+            if download_filename == filename:
+                download["merged"] = True
+                updated = True
+                
+                # 记录合并会话
+                merge_session = {
+                    "merge_time": datetime.now().isoformat(),
+                    "shortcode": download.get("shortcode", "unknown"),
+                    "filename": filename,
+                    "merged_file": merged_file_path
+                }
+                log_data["merged_sessions"].append(merge_session)
+                break
+        
+        if updated:
+            self.save_download_log(log_data)
+            self.info(f"根据文件名标记为已合并: {filename}")
+        else:
+            # 如果没找到匹配的记录，这可能是正常的
+            self.info(f"未找到匹配的下载记录: {filename}")
+            
+        return updated
+    
     def mark_batch_as_merged(self, shortcodes: List[str], merged_file_path: str):
         """标记多个视频为已合并（批量合并时使用）"""
         log_data = self.load_download_log()
@@ -160,7 +197,7 @@ class Logger:
         self.save_download_log(log_data)
         self.success(f"批量合并完成: {len(shortcodes)} 个视频 -> {merged_file_path}")
     
-    def get_download_summary(self) -> str:
+    def get_download_summary(self) -> dict:
         """获取下载汇总信息"""
         log_data = self.load_download_log()
         downloads = log_data["downloads"]
@@ -168,10 +205,18 @@ class Logger:
         total = len(downloads)
         success = len([d for d in downloads if d["status"] == "success"])
         failed = len([d for d in downloads if d["status"] == "failed"])
+        skipped = len([d for d in downloads if d["status"] == "skipped"])
         merged = len([d for d in downloads if d.get("merged", False)])
         unmerged = success - merged
         
-        return f"下载汇总: 总计 {total}, 成功 {success}, 失败 {failed}, 已合并 {merged}, 待合并 {unmerged}"
+        return {
+            "total": total,
+            "success": success,
+            "failed": failed,
+            "skipped": skipped,
+            "merged": merged,
+            "unmerged": unmerged
+        }
     
     def is_downloaded(self, shortcode: str) -> bool:
         """检查指定shortcode是否已下载（检查日志记录+实际文件存在）"""
@@ -260,7 +305,7 @@ class Logger:
         from datetime import datetime, timedelta
         
         # 检查是否需要完整扫描
-        cache_file = Path(f"data/.sync_cache_{self.account_name}.json")
+        cache_file = Path(f"logs/cache/.sync_cache_{self.account_name}.json")
         
         # 如果不是强制完整扫描，使用增量同步
         if not force_full_scan and cache_file.exists():
@@ -394,7 +439,7 @@ class Logger:
         from pathlib import Path
         from datetime import datetime
         
-        cache_file = Path(f"data/.sync_cache_{self.account_name}.json")
+        cache_file = Path(f"logs/cache/.sync_cache_{self.account_name}.json")
         cache_data = {
             "last_sync": datetime.now().isoformat(),
             "account": self.account_name

@@ -91,7 +91,7 @@ class InstagramDownloader(IDownloader):
             self.loader = Instaloader(
                 max_connection_attempts=3,  # 最大连接尝试次数
                 request_timeout=10,        # 请求超时时间
-                quiet=False,               # 启用输出，便于调试
+                quiet=True,                # 静默模式，减少不必要的输出
                 save_metadata=True,        # 保存元数据文件 - 重要！
                 compress_json=True         # 压缩json文件
             )

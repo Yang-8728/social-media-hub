@@ -10,7 +10,7 @@ class DownloadStats:
     
     def __init__(self, account_name: str):
         self.account_name = account_name
-        self.log_file = f"videos/download_logs/{account_name}_downloads.json"
+        self.log_file = f"logs/downloads/{account_name}_downloads.json"
     
     def get_today_stats(self) -> Dict:
         """获取今天的下载统计"""

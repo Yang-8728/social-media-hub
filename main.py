@@ -86,16 +86,26 @@ def run_download(account_name: str, limit: int):
     
     success_count = 0
     total_count = len(results)
+    has_actual_downloads = False
+    has_detailed_message = False
     
     for result in results:
         if result.success:
             print(f"✅ 下载成功: {result.message}")
             success_count += 1
+            # 检查是否是实际的下载操作（不是"没有新视频"这种状态消息）
+            if "没有新视频" not in result.message:
+                has_actual_downloads = True
+                # 检查是否已经包含详细信息（如"成功下载 X 个帖子"）
+                if "成功下载" in result.message and "个帖子" in result.message:
+                    has_detailed_message = True
         else:
             print(f"❌ 下载失败: {result.error}")
+            has_actual_downloads = True  # 失败也算作实际的下载尝试
     
     success = success_count > 0
-    if total_count > 0:
+    # 只有在有实际下载操作且没有详细消息时才显示下载完成统计
+    if total_count > 0 and has_actual_downloads and not has_detailed_message:
         print(f"📊 下载完成: {success_count}/{total_count} 成功")
     return success
 

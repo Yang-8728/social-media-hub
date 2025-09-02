@@ -9,9 +9,9 @@ from pathlib import Path
 
 def merge_download_logs():
     # 文件路径
-    gaoxiao_file = Path("videos/download_logs/gaoxiao_downloads.json")
-    ai_vanvan_file = Path("data/download_logs/ai_vanvan_downloads.json")
-    backup_file = Path("data/download_logs/ai_vanvan_downloads.json.backup")
+    gaoxiao_file = Path("logs/downloads/gaoxiao_downloads.json")
+    ai_vanvan_file = Path("logs/downloads/ai_vanvan_downloads.json")
+    backup_file = Path("logs/downloads/ai_vanvan_downloads.json.backup")
     
     print("🔄 开始合并下载记录...")
     
