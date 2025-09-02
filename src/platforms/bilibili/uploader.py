@@ -47,6 +47,14 @@ class BilibiliUploader(IUploader):
             chrome_options.add_experimental_option("excludeSwitches", ["enable-automation"])
             chrome_options.add_experimental_option('useAutomationExtension', False)
             
+            # 抑制Chrome日志和错误输出
+            chrome_options.add_argument("--log-level=3")  # 只显示致命错误
+            chrome_options.add_argument("--silent") 
+            chrome_options.add_argument("--disable-logging")
+            chrome_options.add_argument("--disable-dev-shm-usage")
+            chrome_options.add_argument("--no-sandbox")
+            chrome_options.add_experimental_option("excludeSwitches", ["enable-logging"])
+            
             print("🚀 启动Chrome浏览器...")
             
             self.driver = webdriver.Chrome(options=chrome_options)
@@ -141,18 +149,21 @@ class BilibiliUploader(IUploader):
             )
             title_input.clear()
             
-            # 生成正确的标题格式
-            title = self._generate_title()
+            # 生成正确的标题格式（但不立即增加序号）
+            title = self._generate_title_preview()
             title_input.send_keys(title)
             print(f"📝 标题已设置: {title}")
+            
+            # 保存当前使用的序号（用于失败时回退）
+            self.current_episode_number = self._get_current_episode_number()
         except:
             print("⚠️ 无法自动填写标题，请手动填写")
     
-    def _generate_title(self) -> str:
-        """生成标题 - ins海外离大谱#序号格式"""
+    def _generate_title_preview(self) -> str:
+        """生成标题预览 - ins海外离大谱#序号格式（不增加序号）"""
         try:
-            # 获取当前序号
-            current_number = self._get_next_episode_number()
+            # 获取当前序号（不增加）
+            current_number = self._get_current_episode_number()
             title = f"ins海外离大谱#{current_number}"
             return title
         except Exception as e:
@@ -160,30 +171,43 @@ class BilibiliUploader(IUploader):
             # 如果获取序号失败，使用默认格式
             return "ins海外离大谱#84"
     
-    def _get_next_episode_number(self) -> int:
-        """获取下一个集数序号"""
+    def _get_current_episode_number(self) -> int:
+        """获取当前集数序号（不增加）"""
         try:
-            # 方法1: 从序号文件读取
             sequence_file = "c:/Code/social-media-hub/data/episode_number.txt"
             if os.path.exists(sequence_file):
                 with open(sequence_file, 'r', encoding='utf-8') as f:
                     current_number = int(f.read().strip())
-                    
-                # 更新序号文件
-                with open(sequence_file, 'w', encoding='utf-8') as f:
-                    f.write(str(current_number + 1))
-                    
                 return current_number
             else:
-                # 如果文件不存在，创建并从84开始
-                os.makedirs(os.path.dirname(sequence_file), exist_ok=True)
-                with open(sequence_file, 'w', encoding='utf-8') as f:
-                    f.write("85")  # 下次从85开始
+                # 如果文件不存在，从84开始
                 return 84
+        except Exception as e:
+            print(f"⚠️ 获取当前序号失败: {e}")
+            return 84
+    
+    def _increment_episode_number(self) -> None:
+        """仅在上传成功后增加序号"""
+        try:
+            sequence_file = "c:/Code/social-media-hub/data/episode_number.txt"
+            if os.path.exists(sequence_file):
+                with open(sequence_file, 'r', encoding='utf-8') as f:
+                    current_number = int(f.read().strip())
+            else:
+                current_number = 84
+                os.makedirs(os.path.dirname(sequence_file), exist_ok=True)
+            
+            # 增加序号
+            with open(sequence_file, 'w', encoding='utf-8') as f:
+                f.write(str(current_number + 1))
+            print(f"📈 序号已更新: {current_number} → {current_number + 1}")
                 
         except Exception as e:
-            print(f"⚠️ 获取序号失败: {e}")
-            return 84  # 默认从84开始
+            print(f"⚠️ 更新序号失败: {e}")
+    
+    def _get_next_episode_number(self) -> int:
+        """获取下一个集数序号（已弃用，改用 _increment_episode_number）"""
+        return self._get_current_episode_number()
     
     def _set_category_fast(self, category: str, subcategory: str = None):
         """优化的快速设置分区 - 避免误点击分区合集"""
@@ -502,14 +526,20 @@ class BilibiliUploader(IUploader):
                     print(f"⚠️ 截图保存失败: {e}")
                     
                 print("✅ 稿件投递成功！1秒后关闭浏览器...")
+                
+                # 上传成功后才增加序号
+                self._increment_episode_number()
+                
                 time.sleep(1)
                 self.driver.quit()
                 return True
                 
             except Exception:
                 print("⚠️ 等待120秒后未检测到'稿件投递成功'")
+                print(f"🔄 保持当前序号: {getattr(self, 'current_episode_number', '未知')}")
                 return False
                 
         except Exception as e:
             print(f"❌ 提交过程失败: {e}")
+            print(f"🔄 保持当前序号: {getattr(self, 'current_episode_number', '未知')}")
             return False

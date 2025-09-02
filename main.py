@@ -95,7 +95,8 @@ def run_download(account_name: str, limit: int):
             print(f"❌ 下载失败: {result.error}")
     
     success = success_count > 0
-    print(f"📊 下载完成: {success_count}/{total_count} 成功")
+    if total_count > 0:
+        print(f"📊 下载完成: {success_count}/{total_count} 成功")
     return success
 
 
@@ -110,7 +111,7 @@ def run_merge(account_name: str, limit: int = None):
     merger = VideoMerger(account_name)
     
     # 使用终极标准化合并（包含所有功能）
-    result = merger.merge_unmerged_videos_ultimate(limit=limit)
+    result = merger.merge_unmerged_videos(limit=limit)
     
     print(f"✅ 合并完成 - 成功: {result['merged']}, 跳过: {result['skipped']}, 失败: {result['failed']}")
     
@@ -274,7 +275,7 @@ def run_full_pipeline(account_name: str, download_limit: int = 5):
         
         # 获取合并前的状态，检查是否有新合并
         merger = VideoMerger(account_name)
-        merge_result = merger.merge_unmerged_videos_ultimate(limit=None)
+        merge_result = merger.merge_unmerged_videos(limit=None)
         
         if merge_result['merged'] == 0:
             print("✅ 视频检查完成！")
