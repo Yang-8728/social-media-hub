@@ -5,6 +5,32 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.1.1] - 2025-09-02
+
+### 修复 🔧
+- � 修复视频合并器中 Logger debug 方法错误
+- 📊 修复工作流处理错误视频数量问题（168→11个视频）
+- 🎯 优化合并逻辑，只处理今天的视频
+- 🧹 移除冗余的智能模式选择逻辑
+
+### 删除 ❌
+- 🗑️ 智能合并模式（统一使用终极模式）
+- 📂 过时的兼容性包装方法
+- 🧽 清理 `smart_merge_test.py` 和 `strategy2_smart_fix.py`
+
+### 更改 🔄
+- 🎯 简化合并方法命名（移除"ultimate"前缀）
+- 📝 更新Chrome日志设置，输出更清洁
+- 🔄 改进上传失败时的序列号回滚机制
+- 📋 增强工作流中的合并模式描述
+- 🧰 更新 .gitignore 规则，忽略临时调试文件
+
+### 技术细节 ⚙️
+- **合并逻辑**: 现在只处理今天的视频，具备完善的重复检测
+- **标准化**: 统一终极模式确保100%兼容B站上传要求
+- **代码质量**: 删除584行冗余代码，新增75行改进
+- **文件管理**: 更好的日志和记录文件组织结构
+
 ## [2.0.0] - 2025-08-31
 
 ### Added
