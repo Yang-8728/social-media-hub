@@ -134,7 +134,7 @@ class BilibiliUploader(IUploader):
             return False
     
     def _set_title(self, video_path: str):
-        """智能设置标题 - 使用ins海外离大谱#序号格式"""
+        """智能设置标题 - 使用ins海外利大谱#序号格式"""
         try:
             title_input = self.wait.until(
                 EC.presence_of_element_located((By.CSS_SELECTOR, "input[placeholder*='标题'], input[placeholder*='请填写标题']"))

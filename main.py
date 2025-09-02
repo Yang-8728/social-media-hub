@@ -100,17 +100,17 @@ def run_download(account_name: str, limit: int):
 
 
 def run_merge(account_name: str, limit: int = None):
-    """运行视频合并任务"""
+    """运行视频合并任务 - 使用完整标准化流程"""
+    print(f"�️ 开始完整标准化合并任务: {account_name}")
+    print("📋 包含功能：加黑边统一分辨率 + 音频转AAC + 时间戳修复 + 完整参数标准化")
     if limit:
-        print(f"🔄 开始合并任务: {account_name} (限制: {limit} 个)")
-    else:
-        print(f"🔄 开始合并任务: {account_name}")
+        print(f"� 处理限制: {limit} 个视频")
     
     # 初始化合并器
     merger = VideoMerger(account_name)
     
-    # 合并指定数量的未合并视频
-    result = merger.merge_unmerged_videos(limit=limit)
+    # 使用终极标准化合并（包含所有功能）
+    result = merger.merge_unmerged_videos_ultimate(limit=limit)
     
     print(f"✅ 合并完成 - 成功: {result['merged']}, 跳过: {result['skipped']}, 失败: {result['failed']}")
     
@@ -271,12 +271,21 @@ def run_full_pipeline(account_name: str, download_limit: int = 5):
         # 步骤2: 合并视频
         print("\n🔄 步骤2/3: 合并视频...")
         print("-" * 40)
-        success_merge = run_merge(account_name, limit=None)  # 合并所有未合并的视频
-        if not success_merge:
-            print("❌ 合并失败，停止流程")
-            return False
-            
-        print("✅ 视频合并完成！")
+        
+        # 获取合并前的状态，检查是否有新合并
+        merger = VideoMerger(account_name)
+        merge_result = merger.merge_unmerged_videos_ultimate(limit=None)
+        
+        if merge_result['merged'] == 0:
+            print("✅ 视频检查完成！")
+            print("ℹ️ 没有新的视频需要合并，无需上传，流程结束")
+            print("\n" + "="*60)
+            print(f"🎉 {account_name} 流程执行完成！")
+            print("📥 下载 ✅ → 🔄 无新视频 ✅ → ℹ️ 跳过上传")
+            print("="*60)
+            return True
+        
+        print("✅ 视频合并完成！发现新合并视频，准备上传")
         time.sleep(2)  # 短暂等待
         
         # 步骤3: 获取最新合并的视频并上传

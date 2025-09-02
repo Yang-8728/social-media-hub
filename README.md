@@ -2,7 +2,7 @@
 
 🎯 **企业级社交媒体内容管理系统**
 
-一个专业的Instagram内容下载、管理和处理工具，支持多账户管理、自动化下载、视频合并等功能。
+一个专业的Instagram内容下载、管理和处理工具，支持多账户管理、自动化下载、高级视频合并等功能。
 
 ## ✨ 主要特性
 
@@ -10,7 +10,8 @@
 - 📱 **多平台支持**: 目前支持Instagram，架构支持扩展
 - 👥 **多账户管理**: 支持多个账户独立配置和管理
 - 📁 **智能文件夹**: 按日期、博主等策略自动组织文件
-- 🎬 **视频合并**: 自动合并下载的视频文件
+- 🎬 **高级视频合并**: 支持标准合并和终极标准化合并
+- 🔧 **视频修复**: 自动修复时间戳、音频质量等问题
 - 📊 **下载记录**: 完整的下载历史和去重机制
 - 🛡️ **路径保护**: 自动处理Unicode路径问题
 - 🎨 **友好界面**: 清晰的进度显示和状态反馈
@@ -35,10 +36,36 @@ python main.py --download --ai_vanvan
 python main.py --download --aigf8728
 ```
 
-### 3. 合并视频
+### 3. 视频合并
+
+#### 标准合并
 ```bash
 # 合并最新8个视频
-python main.py --merge --ai_vanvan --merge-limit 8
+python main.py --merge ai_vanvan --limit 8
+```
+
+#### 终极标准化合并 ⭐
+```bash
+# 使用终极标准化合并（推荐）
+python main.py --merge ai_vanvan --ultimate
+```
+
+## 🎬 视频处理功能
+
+### 合并模式对比
+
+| 模式 | 速度 | 质量 | 适用场景 |
+|------|------|------|----------|
+| 标准合并 | 快速 | 保持原始 | 高质量视频 |
+| 终极合并 | 较慢 | 完全标准化 | 有问题的视频 ⭐ |
+
+### 问题诊断工具
+```bash
+# 扫描视频质量
+python scripts/analysis/complete_audio_scan.py
+
+# 分析特定问题
+python scripts/analysis/deep_analyze_problem_video.py
 ```
 
 ## 📁 项目结构
@@ -46,8 +73,16 @@ python main.py --merge --ai_vanvan --merge-limit 8
 ```
 social-media-hub/
 ├── 📚 docs/                 # 文档目录
-├── 🛠️ tools/                # 工具脚本  
+│   ├── VIDEO_MERGE_GUIDE.md # 视频合并完整指南
+│   └── PROJECT_STRUCTURE.md # 项目结构说明
+├── 🛠️ scripts/              # 工具脚本
+│   ├── analysis/            # 视频分析工具
+│   └── merge/               # 合并处理工具
 ├── 💻 src/                  # 源代码
+│   └── utils/
+│       └── video_merger.py  # 视频合并核心模块
+├── 🗃️ temp/                 # 临时文件
+└── 📄 main.py               # 主程序入口
 │   ├── utils/              # 工具模块
 │   ├── platforms/          # 平台实现
 │   └── core/              # 核心接口

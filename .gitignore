@@ -38,8 +38,14 @@ Thumbs.db
 
 # Project specific
 temp/
+temp_scripts/
 logs/
 *.log
+
+# 临时批处理文件（根目录）
+/analyze_videos.bat
+/ultimate_merge.bat
+/*.bat
 
 # 敏感信息 - 包含真实用户名等隐私数据
 config/accounts.json
@@ -146,6 +152,24 @@ User Data/
 # 大文件通用规则
 *.dll
 *.exe
+
+# 视频文件 - 防止意外提交大型测试视频
+*.mp4
+*.avi
+*.mov
+*.mkv
+*.webm
+*.flv
+*.wmv
+*.m4v
+
+# 临时合并视频（根目录）
+/merged_*.mp4
+/ultimate_*.mp4
+/strategy*.mp4
+/fixed_*.mp4
+
+# 数据文件
 videos/download_logs/*.json 
 data/*.json  
 data/.sync_cache_*.json 
