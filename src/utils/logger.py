@@ -17,9 +17,11 @@ class Logger:
         self.logs_dir = Path("logs")
         self.logs_dir.mkdir(exist_ok=True)
         
-        # 日志文件按日期命名
+        # 应用程序日志文件按日期命名，存储在app子目录
         today = datetime.now().strftime("%Y-%m-%d")
-        self.log_file = self.logs_dir / f"{today}-{account_name}.log"
+        app_logs_dir = self.logs_dir / "app"
+        app_logs_dir.mkdir(exist_ok=True)
+        self.log_file = app_logs_dir / f"{today}-{account_name}.log"
         
         # 下载记录文件 - 统一到logs目录
         self.download_log_file = Path("logs") / "downloads" / f"{account_name}_downloads.json"

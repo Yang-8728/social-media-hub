@@ -5,6 +5,34 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.2.0] - 2025-09-02
+
+### 重构 🏗️
+- 📁 **统一日志结构**: 将分散的日志文件整合到 `logs/` 目录下
+  - `logs/downloads/` - 下载记录
+  - `logs/merges/` - 合并记录  
+  - `logs/cache/` - 缓存文件
+  - `logs/episodes/` - 剧集记录
+  - `logs/usage/` - 使用统计
+  - `logs/screenshots/` - 截图文件
+- 🔄 **路径更新**: 更新所有相关工具和脚本的路径引用
+
+### 修复 🔧
+- 🐛 **方法调用错误**: 修复 `Logger.debug()` 方法不存在的问题，替换为 `Logger.info()`
+- 🎯 **状态同步**: 改进视频合并时自动更新下载记录状态的逻辑
+- 🔄 **错误处理**: 增强视频合并和状态跟踪的稳定性
+
+### 优化 ⚡
+- 🔇 **静默模式**: 启用Instagram下载器静默模式，减少冗余URL输出
+- 📝 **显示逻辑**: 优化下载完成消息显示，避免重复信息
+- 🧹 **项目清理**: 删除异常目录和Python缓存文件
+
+### 技术细节 ⚙️
+- **文件结构**: 所有日志相关文件统一管理，便于维护
+- **代码质量**: 修复方法调用错误，提高代码稳定性
+- **用户体验**: 减少控制台噪音，输出更清洁
+- **状态管理**: 改进下载和合并状态的同步机制
+
 ## [2.1.1] - 2025-09-02
 
 ### 修复 🔧

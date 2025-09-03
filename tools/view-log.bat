@@ -4,7 +4,7 @@ setlocal enabledelayedexpansion
 
 if "%1"=="" (
     echo 用法: view-log.bat [日志文件路径]
-    echo 示例: view-log.bat logs\2025-08-25-ai_vanvan.log
+    echo 示例: view-log.bat logs\app\2025-08-25-ai_vanvan.log
     exit /b 1
 )
 
