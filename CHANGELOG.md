@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.3.0] - 2025-09-03
+
+### 清理 🧹
+- **根目录整理**: 移除所有临时分析和测试脚本
+- **文件组织**: 工具脚本移动到tools/目录，日志文件整理到相应子目录
+- **缓存清理**: 删除Python缓存文件和临时目录
+- **项目结构**: 根目录现在只包含核心项目文件
+
+### 发布 🎯
+- **AI_VANVAN最终版本**: 创建v2.3.0-ai_vanvan-final标签
+- **生产就绪**: 项目结构整洁，所有功能已测试验证
+
 ## [2.2.0] - 2025-09-02
 
 ### 重构 🏗️
