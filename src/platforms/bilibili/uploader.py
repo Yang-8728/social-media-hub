@@ -150,7 +150,7 @@ class BilibiliUploader(IUploader):
             title_input.clear()
             
             # 生成正确的标题格式（但不立即增加序号）
-            title = self._generate_title_preview()
+            title = self._generate_title_preview(video_path)
             title_input.send_keys(title)
             print(f"📝 标题已设置: {title}")
             
@@ -159,17 +159,52 @@ class BilibiliUploader(IUploader):
         except:
             print("⚠️ 无法自动填写标题，请手动填写")
     
-    def _generate_title_preview(self) -> str:
-        """生成标题预览 - ins海外离大谱#序号格式（不增加序号）"""
+    def _generate_title_preview(self, video_path: str = None) -> str:
+        """生成标题预览 - 根据账户配置生成不同格式"""
         try:
             # 获取当前序号（不增加）
             current_number = self._get_current_episode_number()
-            title = f"ins海外离大谱#{current_number}"
+            
+            # 根据账户名生成不同的标题格式
+            if self.account_name == "aigf8728":
+                # 尝试从视频路径提取博主ID
+                blogger_id = self._extract_blogger_id(video_path) if video_path else "[博主ID]"
+                title = f"ins你的海外第{current_number}个女友:{blogger_id}"
+            else:
+                # 默认 ai_vanvan 格式
+                title = f"ins海外离大谱#{current_number}"
+            
             return title
         except Exception as e:
             print(f"⚠️ 生成标题失败: {e}")
             # 如果获取序号失败，使用默认格式
-            return "ins海外离大谱#84"
+            if self.account_name == "aigf8728":
+                return "ins你的海外第6个女友:[博主ID]"
+            else:
+                return "ins海外离大谱#84"
+    
+    def _extract_blogger_id(self, video_path: str) -> str:
+        """从视频路径中提取博主ID"""
+        if not video_path:
+            return "[博主ID]"
+        
+        try:
+            # aigf8728 使用 date_blogger 策略，路径格式如：
+            # .../downloads/aigf8728/2025-09-04_blogger_name/video.mp4
+            import os
+            path_parts = os.path.normpath(video_path).split(os.sep)
+            
+            # 找到包含日期_博主ID的文件夹
+            for part in path_parts:
+                if '_' in part and len(part.split('_')[0]) == 10:  # 检查是否是日期格式 YYYY-MM-DD
+                    date_blogger = part.split('_', 1)  # 按第一个下划线分割
+                    if len(date_blogger) > 1:
+                        return date_blogger[1]  # 返回博主ID部分
+            
+            return "[博主ID]"
+        except Exception as e:
+            print(f"⚠️ 提取博主ID失败: {e}")
+            return "[博主ID]"
     
     def _get_current_episode_number(self) -> int:
         """获取当前集数序号（不增加）"""
@@ -181,10 +216,24 @@ class BilibiliUploader(IUploader):
                     current_number = int(f.read().strip())
                 return current_number
             else:
-                # 如果文件不存在，不同账号使用不同的起始序号
+                # 如果文件不存在，尝试从配置文件读取起始序号
+                try:
+                    import json
+                    config_path = "config/accounts.json"
+                    with open(config_path, 'r', encoding='utf-8') as f:
+                        accounts_config = json.load(f)
+                    
+                    if self.account_name in accounts_config:
+                        account_config = accounts_config[self.account_name]
+                        if 'upload' in account_config and 'next_number' in account_config['upload']:
+                            return account_config['upload']['next_number']
+                except Exception as e:
+                    print(f"⚠️ 读取配置文件失败: {e}")
+                
+                # 如果配置读取失败，使用默认序号
                 default_numbers = {
                     'ai_vanvan': 84,  # 当前进度
-                    'aigf8728': 1,    # 新账号从1开始
+                    'aigf8728': 6,    # 从配置的起始序号开始
                     'gaoxiao': 1      # 新账号从1开始
                 }
                 return default_numbers.get(self.account_name, 1)
