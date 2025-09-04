@@ -104,6 +104,100 @@ class VideoMerger:
                 return True
         return False
     
+    def _generate_title_filename(self, video_paths: List[str]) -> str:
+        """根据账户配置生成标题格式的文件名"""
+        try:
+            # 获取当前序号
+            episode_number = self._get_current_episode_number()
+            
+            # 提取博主ID
+            blogger_id = self._extract_blogger_id_from_videos(video_paths)
+            
+            # 根据账户生成不同格式
+            if self.account_name == "aigf8728":
+                # aigf8728格式：ins你的海外第N个女友_博主ID
+                title = f"ins你的海外第{episode_number}个女友_{blogger_id}"
+            else:
+                # ai_vanvan等其他账户格式
+                title = f"ins海外离大谱#{episode_number}"
+            
+            # 清理文件名中的非法字符
+            title = self._clean_filename(title)
+            return f"{title}.mp4"
+            
+        except Exception as e:
+            self.logger.warning(f"生成标题文件名失败: {e}，使用时间戳格式")
+            # 如果失败，回退到时间戳格式
+            timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+            return f"{timestamp}.mp4"
+    
+    def _get_current_episode_number(self) -> int:
+        """获取当前集数序号"""
+        try:
+            # 按账号分开管理序号文件
+            sequence_file = f"logs/episodes/{self.account_name}_episode.txt"
+            if os.path.exists(sequence_file):
+                with open(sequence_file, 'r', encoding='utf-8') as f:
+                    return int(f.read().strip())
+            else:
+                # 从配置文件读取起始序号
+                try:
+                    from main import load_account_config
+                    accounts_config = load_account_config()
+                    
+                    if self.account_name in accounts_config:
+                        account_config = accounts_config[self.account_name]
+                        if 'upload' in account_config and 'next_number' in account_config['upload']:
+                            return account_config['upload']['next_number']
+                except Exception:
+                    pass
+                
+                # 默认序号
+                default_numbers = {
+                    'ai_vanvan': 84,
+                    'aigf8728': 6,
+                    'gaoxiao': 1
+                }
+                return default_numbers.get(self.account_name, 1)
+        except Exception:
+            return 1
+    
+    def _extract_blogger_id_from_videos(self, video_paths: List[str]) -> str:
+        """从视频路径列表中提取博主ID"""
+        try:
+            for video_path in video_paths:
+                # aigf8728使用date_blogger策略：.../2025-09-04_blogger_name/video.mp4
+                path_parts = os.path.normpath(video_path).split(os.sep)
+                
+                for part in path_parts:
+                    if '_' in part and len(part.split('_')[0]) == 10:  # 日期格式检查
+                        date_blogger = part.split('_', 1)
+                        if len(date_blogger) > 1:
+                            blogger_id = date_blogger[1]
+                            if blogger_id != "unknown":  # 优先非unknown的博主
+                                return blogger_id
+            
+            # 如果都是unknown或未找到，返回第一个找到的
+            for video_path in video_paths:
+                path_parts = os.path.normpath(video_path).split(os.sep)
+                for part in path_parts:
+                    if '_' in part and len(part.split('_')[0]) == 10:
+                        date_blogger = part.split('_', 1)
+                        if len(date_blogger) > 1:
+                            return date_blogger[1]
+            
+            return "blogger"  # 默认值
+        except Exception:
+            return "blogger"
+    
+    def _clean_filename(self, filename: str) -> str:
+        """清理文件名中的非法字符"""
+        # Windows文件名非法字符
+        illegal_chars = '<>:"/\\|?*'
+        for char in illegal_chars:
+            filename = filename.replace(char, '_')
+        return filename
+    
     def get_latest_videos(self, directory: str, count: int = 8) -> List[str]:
         """获取最新的N个视频文件"""
         video_files = glob.glob(os.path.join(directory, "*.mp4"))
@@ -349,14 +443,35 @@ class VideoMerger:
             self.logger.warning(f"下载目录不存在: {downloads_base}")
             return {"merged": 0, "skipped": 0, "failed": 0}
         
-        # 只收集今天的视频文件（新下载的）
+        # 根据账户的folder_strategy来查找今天的视频文件
         today = datetime.now().strftime("%Y-%m-%d")
-        today_path = os.path.join(downloads_base, today)
-        
         all_today_videos = []
-        if os.path.exists(today_path):
-            videos = glob.glob(os.path.join(today_path, "*.mp4"))
-            all_today_videos.extend(videos)
+        
+        # 获取账户配置来确定folder_strategy
+        try:
+            from main import load_account_config
+            account_configs = load_account_config()
+            account_config = account_configs.get(self.account_name, {})
+            folder_strategy = account_config.get("folder_strategy", "daily")
+        except:
+            folder_strategy = "daily"  # 默认策略
+        
+        if folder_strategy == "date_blogger":
+            # date_blogger格式：YYYY-MM-DD_博主ID
+            # 查找所有以今天日期开头的文件夹
+            pattern = os.path.join(downloads_base, f"{today}_*")
+            today_folders = glob.glob(pattern)
+            
+            for folder in today_folders:
+                if os.path.isdir(folder):
+                    videos = glob.glob(os.path.join(folder, "*.mp4"))
+                    all_today_videos.extend(videos)
+        else:
+            # daily格式：YYYY-MM-DD
+            today_path = os.path.join(downloads_base, today)
+            if os.path.exists(today_path):
+                videos = glob.glob(os.path.join(today_path, "*.mp4"))
+                all_today_videos.extend(videos)
         
         if not all_today_videos:
             self.logger.info("没有找到今天新下载的视频文件")
@@ -394,9 +509,8 @@ class VideoMerger:
         merge_dir = os.path.join("videos", "merged", self.account_name)
         os.makedirs(merge_dir, exist_ok=True)
         
-        # 生成输出文件名 - 简化格式：只保留日期时间
-        timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-        output_filename = f"{timestamp}.mp4"
+        # 生成输出文件名 - 使用标题格式
+        output_filename = self._generate_title_filename(merge_videos)
         output_path = os.path.join(merge_dir, output_filename)
         
         # 使用终极标准化合并（包含所有功能）

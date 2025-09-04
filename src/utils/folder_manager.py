@@ -65,10 +65,13 @@ class FolderManager:
             # 默认策略：直接使用基础目录
             full_path = self.base_download_dir
         
+        # **关键修复：先清理路径中的Unicode字符，再创建目录**
+        cleaned_path = clean_unicode_path(full_path)
+        
         # 确保目录存在
-        os.makedirs(full_path, exist_ok=True)
-        # 使用专用函数清理路径中的Unicode字符
-        return clean_unicode_path(full_path)
+        os.makedirs(cleaned_path, exist_ok=True)
+        
+        return cleaned_path
     
     def get_merged_folder(self, post_owner: str = None) -> str:
         """获取合并文件夹路径"""
@@ -92,8 +95,11 @@ class FolderManager:
         else:
             full_path = self.base_merged_dir
         
-        os.makedirs(full_path, exist_ok=True)
-        return full_path
+        # **关键修复：先清理路径中的Unicode字符，再创建目录**
+        cleaned_path = clean_unicode_path(full_path)
+        
+        os.makedirs(cleaned_path, exist_ok=True)
+        return cleaned_path
     
     def list_download_folders(self) -> list:
         """列出所有下载文件夹"""

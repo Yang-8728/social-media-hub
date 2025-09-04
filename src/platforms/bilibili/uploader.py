@@ -8,6 +8,7 @@ from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.common.by import By
+from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.action_chains import ActionChains
@@ -39,25 +40,41 @@ class BilibiliUploader(IUploader):
                 print(f"❌ 配置文件不存在: {profile_path}")
                 return False
             
+            # 窗口设置
             chrome_options.add_argument("--window-size=1200,800")
             chrome_options.add_argument("--window-position=100,100")
             
-            # 禁用一些干扰选项
+            # 稳定性选项 - 修复启动崩溃问题
+            chrome_options.add_argument("--no-sandbox")
+            chrome_options.add_argument("--disable-dev-shm-usage")
+            chrome_options.add_argument("--disable-gpu")
+            chrome_options.add_argument("--disable-web-security")
+            chrome_options.add_argument("--disable-features=VizDisplayCompositor")
+            chrome_options.add_argument("--disable-extensions")
+            chrome_options.add_argument("--remote-debugging-port=9222")
+            chrome_options.add_argument("--disable-background-timer-throttling")
+            chrome_options.add_argument("--disable-backgrounding-occluded-windows")
+            chrome_options.add_argument("--disable-renderer-backgrounding")
+            
+            # 禁用自动化检测
             chrome_options.add_argument("--disable-blink-features=AutomationControlled")
             chrome_options.add_experimental_option("excludeSwitches", ["enable-automation"])
             chrome_options.add_experimental_option('useAutomationExtension', False)
             
             # 抑制Chrome日志和错误输出
-            chrome_options.add_argument("--log-level=3")  # 只显示致命错误
+            chrome_options.add_argument("--log-level=3")
             chrome_options.add_argument("--silent") 
             chrome_options.add_argument("--disable-logging")
-            chrome_options.add_argument("--disable-dev-shm-usage")
-            chrome_options.add_argument("--no-sandbox")
             chrome_options.add_experimental_option("excludeSwitches", ["enable-logging"])
             
             print("🚀 启动Chrome浏览器...")
             
-            self.driver = webdriver.Chrome(options=chrome_options)
+            # 设置ChromeDriver服务，增加超时时间
+            from selenium.webdriver.chrome.service import Service
+            service = Service()
+            service.start_timeout = 60  # 增加启动超时时间
+            
+            self.driver = webdriver.Chrome(service=service, options=chrome_options)
             self.driver.execute_script("Object.defineProperty(navigator, 'webdriver', {get: () => undefined})")
             self.wait = WebDriverWait(self.driver, 30)
             
@@ -65,6 +82,31 @@ class BilibiliUploader(IUploader):
             return True
         except Exception as e:
             print(f"❌ Chrome驱动设置失败: {e}")
+            print("💡 尝试备用启动方案...")
+            return self._try_fallback_driver()
+            
+    def _try_fallback_driver(self):
+        """备用Chrome启动方案 - 不使用配置文件"""
+        try:
+            chrome_options = Options()
+            
+            # 基础稳定性设置
+            chrome_options.add_argument("--no-sandbox")
+            chrome_options.add_argument("--disable-dev-shm-usage")
+            chrome_options.add_argument("--disable-gpu")
+            chrome_options.add_argument("--window-size=1200,800")
+            chrome_options.add_argument("--remote-debugging-port=9223")  # 使用不同端口
+            
+            print("� 尝试不使用配置文件启动Chrome...")
+            self.driver = webdriver.Chrome(options=chrome_options)
+            self.driver.execute_script("Object.defineProperty(navigator, 'webdriver', {get: () => undefined})")
+            self.wait = WebDriverWait(self.driver, 30)
+            
+            print("✅ Chrome备用方案启动成功")
+            print("⚠️ 注意：未使用保存的登录状态，需要手动登录")
+            return True
+        except Exception as e:
+            print(f"❌ 备用启动方案也失败: {e}")
             return False
     
     def login(self, account: Account) -> bool:
@@ -92,24 +134,79 @@ class BilibiliUploader(IUploader):
         """
         try:
             print(f"📤 开始上传视频: {video_path}")
-            print(f"🏷️ 目标分区: {category}")
-            if subcategory:
-                print(f"🏷️ 目标子分区: {subcategory}")
+            
+            # 根据账户显示不同的分区信息
+            if self.account_name == "aigf8728":
+                print("🏷️ 分区: 手动选择（跳过自动设置）")
+            else:
+                print(f"🏷️ 目标分区: {category}")
+                if subcategory:
+                    print(f"🏷️ 目标子分区: {subcategory}")
             
             # 设置驱动
             if not self.setup_driver():
+                if self.account_name == "aigf8728":
+                    print("🔒 aigf8728账户：Chrome启动失败，但会尝试保持浏览器状态")
+                    # 即使启动失败，也不立即返回False，让程序继续尝试
+                    print("💡 请手动检查Chrome配置或重新尝试")
                 return False
             
             # 直接打开B站上传页面（应该已经登录）
-            print("🌐 打开B站上传页面...")
-            self.driver.get("https://member.bilibili.com/platform/upload/video/")
-            time.sleep(5)
+            print("🌐 正在导航到B站上传页面...")
+            print("📋 目标地址: https://member.bilibili.com/platform/upload/video/frame")
             
-            # 检查是否成功到达上传页面
-            current_url = self.driver.current_url
-            if "upload" not in current_url:
+            try:
+                self.driver.get("https://member.bilibili.com/platform/upload/video/frame")
+                print("✅ 页面请求已发送，等待加载...")
+                time.sleep(3)
+                
+                # 检查当前URL
+                current_url = self.driver.current_url
+                print(f"📍 当前页面: {current_url}")
+                
+                # 等待页面完全加载
+                print("⏳ 等待页面完全加载（最多30秒）...")
+                from selenium.webdriver.support import expected_conditions as EC
+                from selenium.webdriver.common.by import By
+                
+                # 等待页面加载完成的多种信号
+                try:
+                    # 尝试等待上传相关元素
+                    WebDriverWait(self.driver, 30).until(
+                        lambda driver: "upload" in driver.current_url.lower() or 
+                                     "videoup" in driver.current_url.lower() or
+                                     "login" in driver.current_url.lower() or
+                                     driver.find_elements(By.CSS_SELECTOR, "input[type='file']") or
+                                     driver.find_elements(By.XPATH, "//*[contains(text(), '登录')]")
+                    )
+                    print("✅ 页面加载完成")
+                except Exception as e:
+                    print(f"⚠️ 页面加载超时: {e}")
+                    print(f"📍 最终停留页面: {self.driver.current_url}")
+                
+            except Exception as e:
+                print(f"❌ 导航失败: {e}")
+                current_url = "未知"
+            
+            # 重新检查当前URL
+            try:
+                current_url = self.driver.current_url
+                print(f"🔍 导航结果检查: {current_url}")
+            except:
+                current_url = "无法获取"
+                
+            if "upload" not in current_url.lower() and "videoup" not in current_url.lower():
                 print("❌ 未能到达上传页面，可能需要重新登录")
-                return False
+                
+                # 根据账户决定是否保持浏览器打开
+                if self.account_name == "aigf8728":
+                    print("🔒 aigf8728账户：浏览器保持打开状态，请手动登录并重试")
+                    print("💡 请在浏览器中登录后手动导航到上传页面")
+                    print("📋 上传页面地址: https://member.bilibili.com/platform/upload/video/frame")
+                    # 不关闭浏览器，返回False表示需要手动操作
+                    return False
+                else:
+                    return False
                 
             print("✅ 已到达上传页面")
             
@@ -131,14 +228,37 @@ class BilibiliUploader(IUploader):
             # 1. 填写标题（快速处理）
             self._set_title(video_path)
             
-            # 2. 快速设置分区（不等待上传完成）
-            self._set_category_fast(category, subcategory)
+            # 2. 根据账户决定是否设置分区
+            if self.account_name == "aigf8728":
+                print("ℹ️ aigf8728账户跳过分区设置，请在页面手动选择分区")
+            else:
+                # ai_vanvan等其他账户自动设置分区
+                self._set_category_fast(category, subcategory)
             
             # 3. 等待并点击立即投稿
             return self._submit_and_wait_success()
             
         except Exception as e:
             print(f"❌ 上传失败: {e}")
+            
+            # 判断是否为登录相关问题
+            is_login_issue = False
+            if hasattr(self, 'driver') and self.driver:
+                try:
+                    current_url = self.driver.current_url
+                    if "login" in current_url or "upload" not in current_url:
+                        is_login_issue = True
+                except:
+                    pass
+            
+            # 根据账户和错误类型决定是否关闭浏览器
+            if self.account_name == "aigf8728" and is_login_issue:
+                print("🔒 aigf8728账户：检测到登录问题，浏览器保持打开状态，请手动登录")
+                print("💡 请在浏览器中登录后重新尝试上传")
+            else:
+                print("关闭浏览器...")
+                if hasattr(self, 'driver') and self.driver:
+                    self.driver.quit()
             return False
     
     def _set_title(self, video_path: str):
@@ -147,7 +267,11 @@ class BilibiliUploader(IUploader):
             title_input = self.wait.until(
                 EC.presence_of_element_located((By.CSS_SELECTOR, "input[placeholder*='标题'], input[placeholder*='请填写标题']"))
             )
+            
+            # 强力清空输入框
             title_input.clear()
+            title_input.send_keys(Keys.CONTROL + "a")  # 全选
+            title_input.send_keys(Keys.DELETE)  # 删除
             
             # 生成正确的标题格式（但不立即增加序号）
             title = self._generate_title_preview(video_path)
@@ -169,7 +293,12 @@ class BilibiliUploader(IUploader):
             if self.account_name == "aigf8728":
                 # 尝试从视频路径提取博主ID
                 blogger_id = self._extract_blogger_id(video_path) if video_path else "[博主ID]"
+                print(f"🔍 调试信息 - 视频路径: {video_path}")
+                print(f"🔍 调试信息 - 提取的博主ID: '{blogger_id}'")
+                print(f"🔍 调试信息 - 当前序号: {current_number}")
+                
                 title = f"ins你的海外第{current_number}个女友:{blogger_id}"
+                print(f"🔍 调试信息 - 生成的标题: '{title}'")
             else:
                 # 默认 ai_vanvan 格式
                 title = f"ins海外离大谱#{current_number}"
@@ -189,9 +318,15 @@ class BilibiliUploader(IUploader):
             return "[博主ID]"
         
         try:
+            import os
+            
+            # 如果是合并后的视频（在merged文件夹中），需要从合并日志中查找原始视频信息
+            if "merged" in video_path.lower():
+                return self._extract_blogger_from_merged_video(video_path)
+            
+            # 如果是原始视频，直接从路径提取
             # aigf8728 使用 date_blogger 策略，路径格式如：
             # .../downloads/aigf8728/2025-09-04_blogger_name/video.mp4
-            import os
             path_parts = os.path.normpath(video_path).split(os.sep)
             
             # 找到包含日期_博主ID的文件夹
@@ -204,6 +339,51 @@ class BilibiliUploader(IUploader):
             return "[博主ID]"
         except Exception as e:
             print(f"⚠️ 提取博主ID失败: {e}")
+            return "[博主ID]"
+    
+    def _extract_blogger_from_merged_video(self, merged_video_path: str) -> str:
+        """从合并视频的文件名或目录中提取博主ID"""
+        try:
+            import os
+            
+            # 首先尝试从新格式的文件名中提取
+            video_filename = os.path.basename(merged_video_path).replace('.mp4', '')
+            
+            # 新格式：ins你的海外第N个女友_博主ID
+            if "ins你的海外第" in video_filename and "个女友_" in video_filename:
+                parts = video_filename.split("个女友_")
+                if len(parts) > 1:
+                    return parts[1]  # 返回博主ID部分
+            
+            # 如果文件名无法提取，从今天的下载目录中查找
+            base_download_dir = f"c:\\Code\\social-media-hub\\videos\\downloads\\{self.account_name}"
+            
+            if not os.path.exists(base_download_dir):
+                return "[博主ID]"
+            
+            # 遍历今天的下载文件夹，查找包含视频的博主文件夹
+            import datetime
+            today = datetime.datetime.now().strftime("%Y-%m-%d")
+            
+            bloggers = []
+            for folder in os.listdir(base_download_dir):
+                if folder.startswith(today + "_") and os.path.isdir(os.path.join(base_download_dir, folder)):
+                    # 提取博主ID
+                    blogger_id = folder.split('_', 1)[1] if '_' in folder else folder
+                    bloggers.append(blogger_id)
+            
+            # 如果找到博主，返回第一个（主要博主）
+            if bloggers:
+                # 优先返回非 "unknown" 的博主
+                for blogger in bloggers:
+                    if blogger != "unknown":
+                        return blogger
+                return bloggers[0]
+            
+            return "[博主ID]"
+            
+        except Exception as e:
+            print(f"⚠️ 从合并视频提取博主ID失败: {e}")
             return "[博主ID]"
     
     def _get_current_episode_number(self) -> int:
@@ -583,21 +763,35 @@ class BilibiliUploader(IUploader):
                 except Exception as e:
                     print(f"⚠️ 截图保存失败: {e}")
                     
-                print("✅ 稿件投递成功！1秒后关闭浏览器...")
+                print("✅ 稿件投递成功！")
                 
                 # 上传成功后才增加序号
                 self._increment_episode_number()
                 
-                time.sleep(1)
-                self.driver.quit()
+                # 上传成功后关闭浏览器（所有账户）
+                print("🎉 上传成功！3秒后关闭浏览器...")
+                time.sleep(3)
+                if hasattr(self, 'driver') and self.driver:
+                    self.driver.quit()
+                    print("✅ 浏览器已关闭")
                 return True
                 
             except Exception:
                 print("⚠️ 等待120秒后未检测到'稿件投递成功'")
                 print(f"🔄 保持当前序号: {getattr(self, 'current_episode_number', '未知')}")
+                
+                # 上传超时，关闭浏览器
+                print("⏰ 上传超时，关闭浏览器...")
+                if hasattr(self, 'driver') and self.driver:
+                    self.driver.quit()
                 return False
                 
         except Exception as e:
             print(f"❌ 提交过程失败: {e}")
             print(f"🔄 保持当前序号: {getattr(self, 'current_episode_number', '未知')}")
+            
+            # 提交失败，关闭浏览器
+            print("关闭浏览器...")
+            if hasattr(self, 'driver') and self.driver:
+                self.driver.quit()
             return False

@@ -173,8 +173,8 @@ class Logger:
             self.save_download_log(log_data)
             self.info(f"根据文件名标记为已合并: {filename}")
         else:
-            # 如果没找到匹配的记录，这可能是正常的
-            self.info(f"未找到匹配的下载记录: {filename}")
+            # 如果没找到匹配的记录，这是正常的，不需要记录日志
+            pass
             
         return updated
     

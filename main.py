@@ -233,9 +233,14 @@ def run_upload(video_path: str, account_name: str, category: str = "小剧场", 
     """上传视频到Bilibili"""
     print(f"🚀 上传视频: {video_path}")
     print(f"📱 账号: {account_name}")
-    print(f"🏷️ 分区: {category}")
-    if subcategory:
-        print(f"🏷️ 子分区: {subcategory}")
+    
+    # 根据账户显示不同的分区信息
+    if account_name == "aigf8728":
+        print("🏷️ 分区: 手动选择（跳过自动设置）")
+    else:
+        print(f"🏷️ 分区: {category}")
+        if subcategory:
+            print(f"🏷️ 子分区: {subcategory}")
     
     try:
         # 验证文件存在
@@ -251,10 +256,16 @@ def run_upload(video_path: str, account_name: str, category: str = "小剧场", 
         
         # 显示结果
         if result:
-            print(f"✅ 上传流程完成！已自动关闭浏览器")
+            print(f"✅ 上传流程完成！")
+            if account_name != "aigf8728":
+                print("浏览器已自动关闭")
             return True
         else:
-            print(f"⚠️ 上传流程未完成，请检查浏览器手动完成")
+            if account_name == "aigf8728":
+                print(f"🔒 上传流程需要手动操作，浏览器保持打开状态")
+                print("💡 请在浏览器中完成登录和上传操作")
+            else:
+                print(f"⚠️ 上传流程未完成，请检查浏览器手动完成")
             return False
             
     except Exception as e:
