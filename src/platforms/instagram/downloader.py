@@ -37,24 +37,64 @@ class InstagramDownloader(IDownloader):
         finally:
             sys.stderr = old_stderr
 
-    def get_cookiefile(self):
-        """获取 Firefox cookies 文件路径"""
+    def get_cookiefile(self, firefox_profile=None):
+        """获取 Firefox cookies 文件路径
+        
+        Args:
+            firefox_profile (str, optional): 指定的 Firefox profile 名称
+        """
         if system() == "Windows":
             # Windows Firefox cookies 路径
             firefox_dir = os.path.join(expanduser("~"), "AppData", "Roaming", "Mozilla", "Firefox", "Profiles")
-            for profile in glob(os.path.join(firefox_dir, "*")):
-                if os.path.isdir(profile):
-                    cookiefile = os.path.join(profile, "cookies.sqlite")
+            
+            if firefox_profile:
+                # 使用指定的 profile
+                profile_path = os.path.join(firefox_dir, firefox_profile)
+                if os.path.isdir(profile_path):
+                    cookiefile = os.path.join(profile_path, "cookies.sqlite")
                     if os.path.exists(cookiefile):
+                        print(f"✅ 使用指定的 Firefox profile: {firefox_profile}")
                         return cookiefile
+                    else:
+                        print(f"❌ 指定的 Firefox profile 中没有 cookies.sqlite: {firefox_profile}")
+                else:
+                    print(f"❌ 指定的 Firefox profile 不存在: {firefox_profile}")
+                return None
+            else:
+                # 使用第一个找到的 profile (兼容旧版本)
+                for profile in glob(os.path.join(firefox_dir, "*")):
+                    if os.path.isdir(profile):
+                        cookiefile = os.path.join(profile, "cookies.sqlite")
+                        if os.path.exists(cookiefile):
+                            profile_name = os.path.basename(profile)
+                            print(f"⚠️ 使用默认 Firefox profile: {profile_name}")
+                            return cookiefile
         else:
             # Linux/Mac Firefox cookies 路径
             firefox_dir = os.path.join(expanduser("~"), ".mozilla", "firefox")
-            for profile in glob(os.path.join(firefox_dir, "*")):
-                if os.path.isdir(profile):
-                    cookiefile = os.path.join(profile, "cookies.sqlite")
+            
+            if firefox_profile:
+                # 使用指定的 profile
+                profile_path = os.path.join(firefox_dir, firefox_profile)
+                if os.path.isdir(profile_path):
+                    cookiefile = os.path.join(profile_path, "cookies.sqlite")
                     if os.path.exists(cookiefile):
+                        print(f"✅ 使用指定的 Firefox profile: {firefox_profile}")
                         return cookiefile
+                    else:
+                        print(f"❌ 指定的 Firefox profile 中没有 cookies.sqlite: {firefox_profile}")
+                else:
+                    print(f"❌ 指定的 Firefox profile 不存在: {firefox_profile}")
+                return None
+            else:
+                # 使用第一个找到的 profile (兼容旧版本)
+                for profile in glob(os.path.join(firefox_dir, "*")):
+                    if os.path.isdir(profile):
+                        cookiefile = os.path.join(profile, "cookies.sqlite")
+                        if os.path.exists(cookiefile):
+                            profile_name = os.path.basename(profile)
+                            print(f"⚠️ 使用默认 Firefox profile: {profile_name}")
+                            return cookiefile
         return None
 
     def get_session_file_path(self, username: str) -> str:
@@ -113,8 +153,11 @@ class InstagramDownloader(IDownloader):
                     pass  # 忽略session检查错误，继续使用Firefox cookies
             
             # 尝试从 Firefox cookies 登录
-            cookiefile = self.get_cookiefile()
-            if self.validate_login(cookiefile, account.username):
+            firefox_profile = getattr(account, 'firefox_profile', None) or (
+                hasattr(account, 'config') and account.config.get('firefox_profile', None)
+            )
+            cookiefile = self.get_cookiefile(firefox_profile)
+            if cookiefile and self.validate_login(cookiefile, account.username):
                 conn = connect(f"file:{cookiefile}?immutable=1", uri=True)
                 try:
                     cookie_data = conn.execute(

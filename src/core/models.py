@@ -16,6 +16,7 @@ class Account:
     password: str = ""           # 密码
     cookies_file: str = ""       # Cookie文件路径
     profile_path: str = ""       # 浏览器配置文件路径
+    firefox_profile: str = ""    # Firefox profile 名称
     
 
 @dataclass

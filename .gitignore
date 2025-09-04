@@ -47,6 +47,9 @@ logs/
 /ultimate_merge.bat
 /*.bat
 
+# 测试文件（根目录）
+/test_*.py
+
 # 敏感信息 - 包含真实用户名等隐私数据
 config/accounts.json
 config/secrets.json

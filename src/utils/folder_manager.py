@@ -50,9 +50,15 @@ class FolderManager:
             full_path = os.path.join(self.base_download_dir, folder_name)
             
         elif self.folder_strategy == "blogger_daily":
-            # aigf8728: 博主名+日期 (用空格分隔)
+            # 现有策略: 博主名+日期 (用空格分隔)
             blogger_name = self.extract_blogger_name(post_owner) if post_owner else "unknown"
             folder_name = f"{blogger_name} {date_str}"
+            full_path = os.path.join(self.base_download_dir, folder_name)
+            
+        elif self.folder_strategy == "date_blogger":
+            # aigf8728: 日期_博主ID (用下划线分隔)
+            blogger_name = self.extract_blogger_name(post_owner) if post_owner else "unknown"
+            folder_name = f"{date_str}_{blogger_name}"
             full_path = os.path.join(self.base_download_dir, folder_name)
             
         else:
@@ -75,6 +81,12 @@ class FolderManager:
         elif self.folder_strategy == "blogger_daily":
             blogger_name = self.extract_blogger_name(post_owner) if post_owner else "unknown"
             folder_name = f"{blogger_name} {date_str}"
+            full_path = os.path.join(self.base_merged_dir, folder_name)
+            
+        elif self.folder_strategy == "date_blogger":
+            # aigf8728: 日期_博主ID (用下划线分隔)
+            blogger_name = self.extract_blogger_name(post_owner) if post_owner else "unknown"
+            folder_name = f"{date_str}_{blogger_name}"
             full_path = os.path.join(self.base_merged_dir, folder_name)
             
         else:

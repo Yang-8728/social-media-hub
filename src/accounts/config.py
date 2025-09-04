@@ -18,6 +18,7 @@ class AccountConfig:
     chrome_profile_path: str
     download_folder: str
     merged_folder: str
+    firefox_profile: str = ""  # Firefox profile 名称
     
     def get_next_serial(self) -> int:
         """获取下一个序列号"""
