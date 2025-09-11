@@ -1,0 +1,45 @@
+{
+  "ai_vanvan_test": {
+    "name": "ai_vanvan_test",
+    "platform": "instagram",
+    "username": "ai_vanvan",
+    "folder_strategy": "daily",
+    "title_prefix": "[测试]海外离大谱#",
+    "firefox_profile": "370tsjzy.default-release",
+    "environment": "development",
+    "download_safety": {
+      "max_posts_per_session": 5,
+      "request_delay": 3
+    },
+    "test_settings": {
+      "mock_download": true,
+      "skip_upload": true,
+      "dry_run": true
+    }
+  },
+  "aigf8728_test": {
+    "name": "aigf8728_test",
+    "platform": "instagram", 
+    "username": "aigf8728",
+    "folder_strategy": "date_blogger",
+    "firefox_profile": "test_profile",
+    "environment": "development",
+    "bilibili": {
+      "profile_name": "test_profile",
+      "chrome_profile_path": "test_chrome_profile"
+    },
+    "upload_settings": {
+      "title_pattern": "[测试]ins你的海外第{序号}个女友:{博主ID}",
+      "next_number": 1
+    },
+    "download_safety": {
+      "max_posts_per_session": 3,
+      "request_delay": 5
+    },
+    "test_settings": {
+      "mock_download": true,
+      "skip_upload": true,
+      "dry_run": true
+    }
+  }
+}

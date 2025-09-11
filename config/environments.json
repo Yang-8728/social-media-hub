@@ -1,0 +1,40 @@
+{
+  "development": {
+    "name": "开发测试环境",
+    "description": "用于功能测试和调试，不影响生产数据",
+    "base_paths": {
+      "videos": "videos_dev",
+      "logs": "logs_dev",
+      "temp": "temp_dev"
+    },
+    "safety_limits": {
+      "max_download_per_session": 5,
+      "request_delay": 3,
+      "test_mode": true
+    },
+    "features": {
+      "auto_upload": false,
+      "real_download": false,
+      "mock_operations": true
+    }
+  },
+  "production": {
+    "name": "生产环境",
+    "description": "正式使用环境，真实操作",
+    "base_paths": {
+      "videos": "videos",
+      "logs": "logs", 
+      "temp": "temp"
+    },
+    "safety_limits": {
+      "max_download_per_session": 50,
+      "request_delay": 2,
+      "test_mode": false
+    },
+    "features": {
+      "auto_upload": true,
+      "real_download": true,
+      "mock_operations": false
+    }
+  }
+}

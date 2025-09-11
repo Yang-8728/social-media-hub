@@ -15,20 +15,84 @@ from src.utils.video_merger import VideoMerger
 from src.utils.folder_manager import FolderManager
 
 
-def load_account_config() -> dict:
+def load_environment_config():
+    """加载环境配置"""
+    env_config_file = "config/environments.json"
+    current_env_file = "config/current_environment.json"
+    
+    # 默认配置
+    default_env = {
+        "name": "production",
+        "base_paths": {
+            "videos": "videos",
+            "logs": "logs", 
+            "temp": "temp"
+        },
+        "features": {
+            "auto_upload": True,
+            "real_download": True,
+            "mock_operations": False
+        }
+    }
+    
+    # 获取当前环境
+    current_env = "production"
+    if os.path.exists(current_env_file):
+        try:
+            with open(current_env_file, 'r', encoding='utf-8') as f:
+                data = json.load(f)
+                current_env = data.get("current_environment", "production")
+        except:
+            pass
+    
+    # 加载环境配置
+    if os.path.exists(env_config_file):
+        try:
+            with open(env_config_file, 'r', encoding='utf-8') as f:
+                envs = json.load(f)
+                if current_env in envs:
+                    env_config = envs[current_env]
+                    print(f"🌍 当前环境: {current_env} ({env_config.get('name', current_env)})")
+                    return current_env, env_config
+        except Exception as e:
+            print(f"⚠️ 环境配置加载失败: {e}")
+    
+    print(f"🌍 使用默认环境: production")
+    return current_env, default_env
+
+
+def load_account_config(environment="production") -> dict:
     """加载账号配置"""
-    config_file = "config/accounts.json"
+    # 根据环境选择配置文件
+    if environment == "development":
+        config_file = "config/accounts_test.json"
+        fallback_file = "config/accounts.json"
+    else:
+        config_file = "config/accounts.json"
+        fallback_file = None
     
-    if not os.path.exists(config_file):
-        print(f"❌ 配置文件不存在: {config_file}")
-        return {}
+    # 尝试加载主配置文件
+    if os.path.exists(config_file):
+        try:
+            with open(config_file, 'r', encoding='utf-8') as f:
+                config_data = json.load(f)
+                print(f"✅ 加载配置: {config_file}")
+                return config_data
+        except Exception as e:
+            print(f"⚠️ 配置文件解析失败: {e}")
     
-    with open(config_file, 'r', encoding='utf-8') as f:
-        config_data = json.load(f)
-        # 支持新旧格式的配置文件
-        if "accounts" in config_data:
-            return config_data["accounts"]
-        return config_data
+    # 尝试fallback文件
+    if fallback_file and os.path.exists(fallback_file):
+        try:
+            with open(fallback_file, 'r', encoding='utf-8') as f:
+                config_data = json.load(f)
+                print(f"⚠️ 使用备用配置: {fallback_file}")
+                return config_data
+        except Exception as e:
+            print(f"❌ 备用配置文件也解析失败: {e}")
+    
+    print(f"❌ 配置文件不存在或无法读取")
+    return {}
 
 
 def create_account_from_config(account_name: str, config: dict) -> Account:
@@ -51,6 +115,52 @@ def create_account_from_config(account_name: str, config: dict) -> Account:
     account.config = account_config
     
     return account
+
+
+def test_login(account_name: str):
+    """测试登录功能"""
+    print(f"🔑 测试登录: {account_name}")
+    print("-" * 40)
+    
+    # 加载配置
+    config = load_account_config()
+    if not config:
+        return False
+    
+    # 创建账号
+    account = create_account_from_config(account_name, config)
+    if not account.username:
+        print(f"❌ 账号配置不完整: {account_name}")
+        return False
+    
+    print(f"📱 账号: {account.name}")
+    print(f"👤 用户名: {account.username}")
+    print(f"🌐 平台: {account.platform}")
+    
+    # 显示Firefox配置文件信息
+    firefox_profile = account.config.get('firefox_profile', '')
+    if firefox_profile:
+        print(f"🦊 Firefox配置文件: {firefox_profile}")
+    
+    # 初始化下载器
+    downloader = InstagramDownloader()
+    
+    # 尝试登录
+    print(f"\n🔐 开始登录测试...")
+    success = downloader.login(account)
+    
+    if success:
+        print(f"✅ 登录成功: {account.username}")
+        print(f"💾 Session已保存")
+        return True
+    else:
+        print(f"❌ 登录失败: {account.username}")
+        print(f"💡 建议:")
+        print(f"   1. 检查Firefox配置文件是否正确")
+        print(f"   2. 删除旧session文件: del temp\\{account_name}_session*")
+        print(f"   3. 等待几分钟后重试")
+        print(f"   4. 检查网络连接")
+        return False
 
 
 def run_download(account_name: str, limit: int):
@@ -380,6 +490,7 @@ def main():
     parser = argparse.ArgumentParser(description="Social Media Hub - 企业级社交媒体内容管理")
     
     # 命令参数
+    parser.add_argument("--login", action="store_true", help="测试登录功能")
     parser.add_argument("--download", action="store_true", help="下载内容")
     parser.add_argument("--merge", action="store_true", help="合并视频")
     parser.add_argument("--status", action="store_true", help="显示状态")
@@ -404,18 +515,27 @@ def main():
     
     args = parser.parse_args()
     
-    # 确定账号
+    # 加载环境配置
+    current_env, env_config = load_environment_config()
+    
+    # 检查是否在测试环境
+    if current_env == "development":
+        print("🧪 警告: 当前处于测试环境")
+        if env_config.get("features", {}).get("mock_operations", False):
+            print("🎭 模拟操作模式已启用")
+    
+    # 确定账号（根据环境调整账号名称）
     account_name = None
     if args.ai_vanvan:
-        account_name = "ai_vanvan"
+        account_name = "ai_vanvan" if current_env == "production" else "ai_vanvan_test"
     elif args.aigf8728:
-        account_name = "aigf8728"
+        account_name = "aigf8728" if current_env == "production" else "aigf8728_test"
     elif args.account:
         account_name = args.account
     
     # 执行命令
     # 检查是否只指定了账号参数（全流程）
-    has_action = any([args.download, args.merge, args.status, args.folders, 
+    has_action = any([args.login, args.download, args.merge, args.status, args.folders, 
                      args.search, args.stats, args.clean, args.backup, args.upload])
     
     if account_name and not has_action:
@@ -423,11 +543,17 @@ def main():
         print(f"🎯 检测到纯账号参数，执行完整流程...")
         run_full_pipeline(account_name, args.limit)
         
+    elif args.login:
+        if account_name:
+            test_login(account_name)
+        else:
+            print("❌ 请指定账号 (--ai_vanvan, --aigf8728, 或 --account <name>)")
+        
     elif args.download:
         if account_name:
             run_download(account_name, args.limit)
         elif args.all:
-            config = load_account_config()
+            config = load_account_config(current_env)
             for acc in config.keys():
                 run_download(acc, args.limit)
         else:
@@ -466,6 +592,7 @@ def main():
         # 默认显示帮助
         parser.print_help()
         print("\n💡 常用命令示例:")
+        print("   python main.py --login --aigf8728                   # 测试 aigf8728 登录功能")
         print("   python main.py --ai_vanvan                          # 一键执行：下载→合并→上传 全流程")
         print("   python main.py --download --ai_vanvan --limit 5     # 下载 ai_vanvan 的 5 个内容")
         print("   python main.py --merge --ai_vanvan                  # 合并 ai_vanvan 的视频")

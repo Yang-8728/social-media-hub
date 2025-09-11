@@ -132,6 +132,12 @@ ffmpeg/
 /check_*.py
 /analyze_*.py
 
+# 特定的临时文件（根目录）
+/check_paths.py
+/check_spaced_paths.py
+/check_unicode_issue.py
+/env.bat
+
 # 工具目录中的临时测试文件
 tools/test_*.py
 tools/debug_*.py
