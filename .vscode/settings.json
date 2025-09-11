@@ -1,0 +1,7 @@
+{
+  "files.hotExit": "off",
+  "workbench.editor.restoreViewState": false,
+  "window.restoreWindows": "none",
+  "git.autofetch": false,
+  "git.autorefresh": false
+} 

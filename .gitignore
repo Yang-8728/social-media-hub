@@ -21,7 +21,10 @@ env.bak/
 venv.bak/
 
 # IDE
-.vscode/
+.vscode/launch.json
+.vscode/tasks.json
+.vscode/c_cpp_properties.json
+.vscode/*.code-workspace
 .idea/
 *.swp
 *.swo
