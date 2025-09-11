@@ -369,6 +369,20 @@ class InstagramDownloader(IDownloader):
                                                     print(f"✅ 移动相关文件: {related_file}")
                                                 except Exception as e:
                                                     print(f"⚠️  移动相关文件失败 {related_file}: {e}")
+                                                    
+                                # 🔧 新增：清理空的Unicode路径文件夹
+                                try:
+                                    remaining_files = os.listdir(unicode_download_folder)
+                                    if not remaining_files:  # 如果文件夹为空
+                                        shutil.rmtree(unicode_download_folder)
+                                        print(f"🗑️  清理空的Unicode路径文件夹: {unicode_download_folder}")
+                                        
+                                        # 🔧 递归清理父级Unicode路径（如果也为空）
+                                        self._cleanup_empty_unicode_parent_dirs(unicode_download_folder)
+                                    else:
+                                        print(f"⚠️  Unicode路径仍有 {len(remaining_files)} 个文件，跳过删除")
+                                except Exception as e:
+                                    print(f"⚠️  清理Unicode路径失败: {e}")
                         
                         # 记录下载成功
                         post_obj = Post(
@@ -480,3 +494,31 @@ class InstagramDownloader(IDownloader):
             limit = 10
             
         return self.download_posts(account, limit)
+
+    def _cleanup_empty_unicode_parent_dirs(self, unicode_path: str):
+        """递归清理空的Unicode父级目录
+        
+        Args:
+            unicode_path: 已被删除的Unicode路径
+        """
+        try:
+            import shutil
+            # 获取父级目录
+            parent_dir = os.path.dirname(unicode_path)
+            
+            # 如果父级目录包含Unicode分隔符且存在
+            if '﹨' in parent_dir and os.path.exists(parent_dir):
+                # 检查父级目录是否为空
+                try:
+                    remaining_items = os.listdir(parent_dir)
+                    if not remaining_items:
+                        print(f"🗑️  清理空的Unicode父级目录: {parent_dir}")
+                        shutil.rmtree(parent_dir)
+                        # 递归检查更上级的目录
+                        self._cleanup_empty_unicode_parent_dirs(parent_dir)
+                    else:
+                        print(f"ℹ️  Unicode父级目录仍有内容，停止清理: {parent_dir}")
+                except OSError as e:
+                    print(f"⚠️  检查Unicode父级目录失败: {e}")
+        except Exception as e:
+            print(f"⚠️  清理Unicode父级目录时出错: {e}")
