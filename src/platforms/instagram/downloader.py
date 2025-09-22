@@ -306,13 +306,15 @@ class InstagramDownloader(IDownloader):
                     self.loader.download_post(post, target=download_folder)
                     print(f"🔄 下载调用完成")
                     
-                    # 检查下载后的文件状态 - 同时检查标准路径和Unicode路径
+                    # 检查下载后的文件状态
                     files_after = set(os.listdir(download_folder))
                     new_files = files_after - files_before
                     
-                    # 检查Unicode路径中的新文件
+                    # 检查是否存在Unicode路径中的新文件（不主动创建Unicode路径）
                     unicode_download_folder = download_folder.replace('\\', '﹨')
                     unicode_new_files = set()
+                    
+                    # 只有当Unicode路径确实存在时才检查和处理
                     if os.path.exists(unicode_download_folder):
                         try:
                             unicode_files_after = set(os.listdir(unicode_download_folder))

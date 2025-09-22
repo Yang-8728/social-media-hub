@@ -1,0 +1,42 @@
+version: '3.8'
+services:
+  redis:
+    image: redis:7-alpine
+    container_name: smh-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes
+    networks:
+      - smh-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+  
+  api-gateway:
+    build: ./containers/api-gateway
+    container_name: smh-api-gateway
+    ports:
+      - "8080:8000"
+    environment:
+      - REDIS_URL=redis://redis:6379
+      - DEBUG=true
+    volumes:
+      - ./shared/logs:/app/logs
+    depends_on:
+      redis:
+        condition: service_healthy
+    networks:
+      - smh-network
+    restart: unless-stopped
+
+networks:
+  smh-network:
+    driver: bridge
+
+volumes:
+  redis_data:
+    driver: local

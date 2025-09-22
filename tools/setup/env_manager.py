@@ -11,7 +11,8 @@ from pathlib import Path
 
 class EnvironmentManager:
     def __init__(self):
-        self.project_root = Path(__file__).parent
+        # 正确设置项目根目录：从 tools/setup/ 向上两级到项目根目录
+        self.project_root = Path(__file__).parent.parent.parent
         self.config_dir = self.project_root / "config"
         self.env_config_file = self.config_dir / "environments.json"
         self.current_env_file = self.config_dir / "current_environment.json"

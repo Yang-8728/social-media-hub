@@ -14,7 +14,12 @@ class Logger:
     
     def __init__(self, account_name: str):
         self.account_name = account_name
-        self.logs_dir = Path("logs")
+        
+        # 获取项目根目录
+        self.project_root = Path(__file__).parent.parent.parent
+        
+        # 设置日志目录
+        self.logs_dir = self.project_root / "logs"
         self.logs_dir.mkdir(exist_ok=True)
         
         # 应用程序日志文件按日期命名，存储在app子目录
@@ -24,7 +29,7 @@ class Logger:
         self.log_file = app_logs_dir / f"{today}-{account_name}.log"
         
         # 下载记录文件 - 统一到logs目录
-        self.download_log_file = Path("logs") / "downloads" / f"{account_name}_downloads.json"
+        self.download_log_file = self.logs_dir / "downloads" / f"{account_name}_downloads.json"
         self.download_log_file.parent.mkdir(parents=True, exist_ok=True)
         
     def log(self, level: str, message: str):

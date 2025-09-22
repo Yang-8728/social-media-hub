@@ -19,9 +19,12 @@ class VideoMerger:
         self.account_name = account_name
         self.logger = Logger(account_name) if account_name else Logger("video_merger")
         
+        # 获取项目根目录
+        self.project_root = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
+        
         # 合并记录文件路径 - 统一放到 logs/merges 目录
         if account_name:
-            logs_dir = os.path.join("logs", "merges")
+            logs_dir = os.path.join(self.project_root, "logs", "merges")
             os.makedirs(logs_dir, exist_ok=True)
             self.merged_record_file = os.path.join(logs_dir, f"{account_name}_merged_record.json")
         else:
@@ -436,8 +439,8 @@ class VideoMerger:
         if not self.account_name:
             return {"merged": 0, "skipped": 0, "failed": 1}
         
-        # 获取所有下载目录
-        downloads_base = os.path.join("videos", "downloads", self.account_name)
+        # 获取正确的下载目录路径 - 使用 videos/downloads
+        downloads_base = os.path.join(self.project_root, "videos", "downloads", self.account_name)
         
         if not os.path.exists(downloads_base):
             self.logger.warning(f"下载目录不存在: {downloads_base}")

@@ -1,10 +1,10 @@
 """
-智能下载队列管理
-优化ai_vanvan的下载体验
+智能下载队列 - 根据用户下载模式自动调整队列策略
 """
-import json
 import os
+import json
 from datetime import datetime, timedelta
+from pathlib import Path
 from typing import List, Dict, Tuple
 
 class SmartDownloadQueue:
@@ -12,11 +12,18 @@ class SmartDownloadQueue:
     
     def __init__(self, account_name: str):
         self.account_name = account_name
-        self.config_file = f"logs/config/{account_name}_download_queue.json"
+        
+        # 获取项目根目录
+        self.project_root = Path(__file__).parent.parent.parent
+        
+        # 设置配置文件路径
+        config_dir = self.project_root / "logs" / "config"
+        config_dir.mkdir(parents=True, exist_ok=True)
+        self.config_file = config_dir / f"{account_name}_download_queue.json"
         
     def analyze_download_pattern(self) -> Dict:
         """分析下载模式"""
-        log_file = f"logs/downloads/{self.account_name}_downloads.json"
+        log_file = self.project_root / "logs" / "downloads" / f"{self.account_name}_downloads.json"
         
         if not os.path.exists(log_file):
             return {"pattern": "new_user", "recommendation": "conservative"}
@@ -28,132 +35,137 @@ class SmartDownloadQueue:
             
             # 分析最近7天的下载
             recent_downloads = []
-            seven_days_ago = datetime.now() - timedelta(days=7)
+            cutoff_date = datetime.now() - timedelta(days=7)
             
             for download in downloads:
-                try:
-                    download_time = datetime.fromisoformat(download['download_time'].replace('Z', '+00:00'))
-                    if download_time >= seven_days_ago:
-                        recent_downloads.append(download)
-                except:
-                    continue
-            
+                download_date = datetime.strptime(download.get('timestamp', ''), '%Y-%m-%d %H:%M:%S')
+                if download_date >= cutoff_date:
+                    recent_downloads.append(download)
+        
+            # 计算统计数据
             total_recent = len(recent_downloads)
             success_recent = len([d for d in recent_downloads if d.get('status') == 'success'])
             
-            # 根据成功率推荐策略
             if total_recent == 0:
-                return {"pattern": "inactive", "recommendation": "conservative"}
-            
-            success_rate = success_recent / total_recent
-            
-            if success_rate >= 0.9 and total_recent >= 20:
-                return {"pattern": "stable_heavy", "recommendation": "balanced"}
-            elif success_rate >= 0.8:
-                return {"pattern": "stable_normal", "recommendation": "balanced"}
+                pattern = "inactive"
+                recommendation = "conservative"
+            elif success_recent / total_recent >= 0.8:
+                pattern = "power_user"
+                recommendation = "aggressive"
+            elif success_recent / total_recent >= 0.5:
+                pattern = "regular_user"
+                recommendation = "balanced"
             else:
-                return {"pattern": "unstable", "recommendation": "conservative"}
+                pattern = "casual_user"
+                recommendation = "conservative"
                 
-        except Exception as e:
-            return {"pattern": "error", "recommendation": "conservative", "error": str(e)}
-    
-    def get_optimal_settings(self) -> Dict:
-        """获取最优下载设置"""
-        pattern_analysis = self.analyze_download_pattern()
-        
-        settings_map = {
-            "conservative": {
-                "max_posts_per_session": 10,
-                "request_delay": 5,
-                "batch_size": 3,
-                "batch_delay": 15
-            },
-            "balanced": {
-                "max_posts_per_session": 30,
-                "request_delay": 3,
-                "batch_size": 5,
-                "batch_delay": 10
-            },
-            "aggressive": {
-                "max_posts_per_session": 50,
-                "request_delay": 2,
-                "batch_size": 8,
-                "batch_delay": 5
+            return {
+                "pattern": pattern,
+                "recommendation": recommendation,
+                "total_recent": total_recent,
+                "success_recent": success_recent,
+                "success_rate": success_recent / max(total_recent, 1)
             }
-        }
+            
+        except Exception as e:
+            print(f"分析下载模式时出错: {e}")
+            return {"pattern": "error", "recommendation": "conservative"}
+
+    def get_queue_by_pattern(self, target_count: int) -> List[str]:
+        """根据用户模式生成智能队列"""
+        pattern_info = self.analyze_download_pattern()
+        pattern = pattern_info.get("pattern", "new_user")
         
-        recommendation = pattern_analysis.get("recommendation", "conservative")
-        settings = settings_map.get(recommendation, settings_map["conservative"])
-        settings["pattern"] = pattern_analysis.get("pattern")
-        
-        return settings
+        # 根据模式调整队列策略
+        if pattern == "power_user":
+            # 大用户：更多最新内容
+            queue = self._generate_aggressive_queue(target_count)
+        elif pattern == "regular_user":
+            # 普通用户：平衡策略
+            queue = self._generate_balanced_queue(target_count)
+        else:
+            # 新用户/轻度用户：保守策略
+            queue = self._generate_conservative_queue(target_count)
+            
+        return queue
     
-    def suggest_download_time(self) -> str:
-        """建议下载时间"""
-        # 分析历史成功时间段
-        log_file = f"logs/downloads/{self.account_name}_downloads.json"
+    def _generate_aggressive_queue(self, count: int) -> List[str]:
+        """生成激进队列：70%最新，30%精选旧内容"""
+        recent_count = int(count * 0.7)
+        old_count = count - recent_count
+        
+        return self._get_mixed_queue(recent_count, old_count, prefer_recent=True)
+    
+    def _generate_balanced_queue(self, count: int) -> List[str]:
+        """生成平衡队列：50%最新，50%精选旧内容"""
+        recent_count = int(count * 0.5)
+        old_count = count - recent_count
+        
+        return self._get_mixed_queue(recent_count, old_count, prefer_recent=False)
+    
+    def _generate_conservative_queue(self, count: int) -> List[str]:
+        """生成保守队列：30%最新，70%精选旧内容"""
+        recent_count = int(count * 0.3)
+        old_count = count - recent_count
+        
+        return self._get_mixed_queue(recent_count, old_count, prefer_recent=False)
+    
+    def _get_mixed_queue(self, recent_count: int, old_count: int, prefer_recent: bool) -> List[str]:
+        """获取混合队列"""
+        # 这里需要实际的Instagram数据获取逻辑
+        # 暂时返回示例数据
+        queue = []
+        
+        # 添加最新内容
+        for i in range(recent_count):
+            queue.append(f"recent_post_{i}")
+            
+        # 添加精选旧内容
+        for i in range(old_count):
+            queue.append(f"featured_old_post_{i}")
+            
+        return queue
+
+    def save_queue_config(self, config: Dict):
+        """保存队列配置"""
+        try:
+            os.makedirs(os.path.dirname(str(self.config_file)), exist_ok=True)
+            with open(self.config_file, 'w', encoding='utf-8') as f:
+                json.dump(config, f, ensure_ascii=False, indent=2)
+        except Exception as e:
+            print(f"保存队列配置失败: {e}")
+
+    def load_queue_config(self) -> Dict:
+        """加载队列配置"""
+        try:
+            if os.path.exists(self.config_file):
+                with open(self.config_file, 'r', encoding='utf-8') as f:
+                    return json.load(f)
+        except Exception as e:
+            print(f"加载队列配置失败: {e}")
+        
+        return {}
+
+    def get_unprocessed_from_log(self) -> List[Dict]:
+        """从日志中获取未处理的下载"""
+        log_file = self.project_root / "logs" / "downloads" / f"{self.account_name}_downloads.json"
         
         if not os.path.exists(log_file):
-            return "建议在用网低峰期(深夜或早晨)进行下载"
-        
+            return []
+            
         try:
             with open(log_file, 'r', encoding='utf-8') as f:
                 data = json.load(f)
                 downloads = data.get('downloads', [])
             
-            # 统计成功下载的时间分布
-            hour_success = {}
+            # 查找状态为pending或failed的下载
+            unprocessed = []
             for download in downloads:
-                if download.get('status') == 'success':
-                    try:
-                        download_time = datetime.fromisoformat(download['download_time'].replace('Z', '+00:00'))
-                        hour = download_time.hour
-                        hour_success[hour] = hour_success.get(hour, 0) + 1
-                    except:
-                        continue
+                if download.get('status') in ['pending', 'failed', 'error']:
+                    unprocessed.append(download)
             
-            if not hour_success:
-                return "建议在用网低峰期进行下载"
+            return unprocessed
             
-            # 找出成功率最高的时间段
-            best_hour = max(hour_success, key=hour_success.get)
-            
-            if 22 <= best_hour or best_hour <= 6:
-                return f"建议在深夜时段下载 (最佳时间: {best_hour}:00)"
-            elif 6 < best_hour <= 9:
-                return f"建议在早晨时段下载 (最佳时间: {best_hour}:00)"
-            else:
-                return f"建议在用网低峰期下载 (历史最佳: {best_hour}:00)"
-                
-        except Exception:
-            return "建议在用网低峰期进行下载"
-
-# 为ai_vanvan生成优化报告
-def generate_optimization_report(account_name: str = "ai_vanvan"):
-    """生成优化报告"""
-    queue = SmartDownloadQueue(account_name)
-    
-    print(f"🔍 {account_name} 下载优化分析报告")
-    print("=" * 50)
-    
-    # 分析下载模式
-    pattern = queue.analyze_download_pattern()
-    print(f"📊 下载模式: {pattern.get('pattern', 'unknown')}")
-    print(f"🎯 推荐策略: {pattern.get('recommendation', 'conservative')}")
-    
-    # 获取最优设置
-    settings = queue.get_optimal_settings()
-    print(f"\n⚙️  推荐设置:")
-    print(f"  - 每次最大下载: {settings['max_posts_per_session']} 个")
-    print(f"  - 请求延迟: {settings['request_delay']} 秒")
-    print(f"  - 批处理大小: {settings['batch_size']} 个")
-    print(f"  - 批次延迟: {settings['batch_delay']} 秒")
-    
-    # 时间建议
-    time_suggestion = queue.suggest_download_time()
-    print(f"\n⏰ 时间建议: {time_suggestion}")
-    
-    print("=" * 50)
-
-if __name__ == "__main__":
-    generate_optimization_report()
+        except Exception as e:
+            print(f"获取未处理下载时出错: {e}")
+            return []
