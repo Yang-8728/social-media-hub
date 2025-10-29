@@ -55,12 +55,12 @@ jobs:
 
           try:
               resp = client.keystone_list_projects(KeystoneListProjectsRequest())
-              names = [p.name for p in (resp.projects or [])]
-              print(f"✅ Signed request succeeded. Number of projects: {len(names)}")
-              print("Projects:", names if names else "(none)")
+              projects = resp.projects or []
+              print(f"✅ Signed request succeeded. Number of projects: {len(projects)}")
+              for p in projects:
+                  print(f"- {p.name:20s} | ID: {p.id}")
               print("Result: AK/SK are valid and can authenticate to Huawei Cloud IAM (read-only, no resource changes).")
           except exceptions.ClientRequestException as e:
               print(f"❌ Request failed: {e.status_code} {e.error_msg}")
               print("Hint: Verify region/project_id match and that the AK/SK have IAM read permission.")
               raise
-          PY
