@@ -1,48 +1,63 @@
-name: HuaweiCloud AKSK Read Proof (no external action)
+name: HuaweiCloud AKSK Signed Check
 on:
-  workflow_dispatch:  # 手动点运行
+  workflow_dispatch:
 
 jobs:
-  read-proof:
+  signed-check:
     runs-on: ubuntu-latest
     steps:
-      # 1) 拉取代码
+      # Step 1: Checkout repository (required for all workflows)
       - name: Checkout
         uses: actions/checkout@v4
 
-      # 2) 手动注入华为云凭证到环境变量（等价于登录）
-      #    需要在仓库 Settings → Secrets and variables → Actions 配置：
-      #    HW_AK / HW_SK / HW_PROJECT_ID / HW_REGION / HW_OBS_ENDPOINT
-      - name: Set Huawei Cloud creds
+      # Step 2: Inject Huawei Cloud credentials into environment variables
+      # Make sure to configure these secrets in:
+      # Repository → Settings → Secrets and variables → Actions
+      # Required secrets:
+      #   HW_AK          - Your Access Key ID
+      #   HW_SK          - Your Secret Access Key
+      #   HW_REGION      - Example: ap-southeast-2 (Sydney) or ap-southeast-3 (Singapore)
+      #   HW_PROJECT_ID  - The Project ID that matches the region
+      - name: Set Huawei Cloud credentials
         run: |
-          echo "HUAWEICLOUD_SDK_AK=HPUA5GZJCTJM32UD9X1W" >> $GITHUB_ENV
-          echo "HUAWEICLOUD_SDK_SK=zlzFxhnxtjEssQ6pKa9Ugsqh8Q5aJSUdqslwymJK" >> $GITHUB_ENV
-          echo "HUAWEICLOUD_SDK_PROJECT_ID=ee0f846e57794e34bcfdee41b77695e9">> $GITHUB_ENV
-          echo "HUAWEICLOUD_SDK_REGION=ap-southeast-2" >> $GITHUB_ENV
+          echo "HW_AK=HPUA5GZJCTJM32UD9X1W" >> $GITHUB_ENV
+          echo "HW_SK=zlzFxhnxtjEssQ6pKa9Ugsqh8Q5aJSUdqslwymJK" >> $GITHUB_ENV
+          echo "HW_REGION=ap-southeast-2" >> $GITHUB_ENV
+          echo "HW_PROJECT_ID=ee0f846e57794e34bcfdee41b77695e9" >> $GITHUB_ENV
 
-# 调用 IAM 公共 API 验证是否能拿到项目信息（只读、零改动）
-      - name: Verify AK/SK works
+      # Step 3: Use Huawei Cloud SDK to make a signed API call (read-only)
+      # This workflow only verifies that AK/SK can successfully authenticate
+      # It does not create, modify, or delete any resources
+      - name: Verify AK/SK by signed SDK call (IAM list projects)
         run: |
-          pip install requests
+          python -V
+          pip install --upgrade pip
+          pip install "huaweicloudsdkcore>=3.1.99" "huaweicloudsdkiam>=3.1.99"
+
           python - <<'PY'
-          import os, requests, json, base64, hmac, hashlib, datetime
+          import os
+          from huaweicloudsdkcore.auth.credentials import BasicCredentials
+          from huaweicloudsdkcore.exceptions import exceptions
+          from huaweicloudsdkcore.http.http_config import HttpConfig
+          from huaweicloudsdkiam.v3 import IamClient, KeystoneListProjectsRequest
 
-          ak = os.getenv("HUAWEICLOUD_SDK_AK")
-          sk = os.getenv("HUAWEICLOUD_SDK_SK")
-          region = os.getenv("HUAWEICLOUD_SDK_REGION")
-          project_id = os.getenv("HUAWEICLOUD_SDK_PROJECT_ID")
-          assert ak and sk and region, "❌ 缺少环境变量 AK/SK/REGION"
+          ak = os.getenv("HW_AK")
+          sk = os.getenv("HW_SK")
+          region = os.getenv("HW_REGION")
+          project_id = os.getenv("HW_PROJECT_ID")
 
-          url = f"https://iam.{region}.myhuaweicloud.com/v3/projects"
-          print(f"Test URL: {url}")
+          assert ak and sk and region and project_id, "❌ Missing HW_AK/HW_SK/HW_REGION/HW_PROJECT_ID"
 
-          # 用 requests 调用 IAM 的公开列表项目 API
-          resp = requests.get(url, timeout=10)
-          print("HTTP Status:", resp.status_code)
-          if resp.status_code == 200:
-              print("✅ AK/SK 测试环境可访问华为云 IAM 公共端点")
-          else:
-              print("⚠️ API 返回非200，可能网络正常但认证未用上（正常）")
+          endpoint = f"https://iam.{region}.myhuaweicloud.com"
 
-          print("这只是验证 runner 能连接华为云；下一步可以尝试签名版 API 或 SDK 进一步验证。")
-          PY
+          # Build IAM client using AK/SK (the SDK automatically signs the request)
+          http_config = HttpConfig.get_default_config()
+          http_config.ignore_ssl_verification = False
+          cred = BasicCredentials(ak, sk, project_id)
+          client = IamClient.new_builder() \
+              .with_http_config(http_config) \
+              .with_credentials(cred) \
+              .with_endpoint(endpoint) \
+              .build()
+
+          try:
