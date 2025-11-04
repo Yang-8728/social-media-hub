@@ -137,10 +137,19 @@ def merger_merge():
         data = request.get_json()
         account = data.get('account')
         limit = data.get('limit', 15)
+        date = data.get('date')  # 新增：可选的日期参数 YYYY-MM-DD
         if not account:
             return jsonify({'error': '请提供account参数'}), 400
         task_id = f'merge_{account}_{os.urandom(4).hex()}'
-        task_data = {'task_id': task_id, 'type': 'merge', 'account': account, 'limit': limit}
+        task_data = {
+            'task_id': task_id, 
+            'type': 'merge', 
+            'account': account, 
+            'limit': limit
+        }
+        # 如果指定了日期，添加到任务数据中
+        if date:
+            task_data['date'] = date
         redis_client.lpush('merge_queue', json.dumps(task_data))
         logger.info(f' 合并任务已创建: {task_id}')
         return jsonify({'status': 'success', 'task_id': task_id})
