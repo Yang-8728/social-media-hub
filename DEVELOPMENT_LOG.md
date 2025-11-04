@@ -1,0 +1,74 @@
+# 开发日志
+
+## 当前状态 (2024-11-04)
+
+### ✅ 已完成
+- Docker 容器化部署（8个服务）
+- Instagram 下载功能
+- 视频标准化工具
+- 合并功能基础框架
+
+### 🔧 最近修复
+**2024-11-04 - API Gateway Merger 任务格式修复**
+- **问题**: Merger 任务缺少 `type` 字段导致失败
+- **修复**: 在 `containers/api-gateway/app.py` 第143行添加 `'type': 'merge'`
+- **修改内容**:
+  ```python
+  # 修改前
+  task_data = {'task_id': task_id, 'account': account, 'limit': limit}
+  
+  # 修改后
+  task_data = {'task_id': task_id, 'type': 'merge', 'account': account, 'limit': limit}
+  ```
+- **验证**: ✅ 已重新构建容器并验证成功
+
+### 🚨 已知问题
+1. **Instagram Session 失效**
+   - 错误: `400 Bad Request` 
+   - 位置: scanner 容器
+   - 需要: 重新登录 Instagram
+
+2. **B站登录失效**
+   - 错误: 重定向到登录页
+   - 位置: uploader 容器
+   - 需要: 更新 Chrome Profile cookies
+
+3. **Merger 任务格式**
+   - 状态: ✅ 已修复
+   - 需要确保所有任务都包含 `type` 字段
+
+### 📋 待办事项
+- [ ] 修复 Instagram Session
+- [ ] 修复 B站登录
+- [ ] 测试完整的下载->标准化->合并->上传流程
+- [ ] 添加错误重试机制
+
+### 🏗️ 架构概览
+```
+API Gateway (8080) 
+  ↓
+├─ Auth (Instagram/B站认证)
+├─ Scanner (扫描新内容)
+├─ Downloader (下载视频)
+├─ Standardizer (标准化视频)
+├─ Merger (合并视频)
+└─ Uploader (上传到B站)
+  ↓
+Redis (任务队列)
+```
+
+### 🔑 关键文件路径
+- API Gateway: `containers/api-gateway/app.py`
+- Merger: `containers/merger/app.py`
+- Docker Compose: `docker-compose.yml`
+- 配置: `config/accounts.json`
+- 视频输出: `videos/downloads/`, `videos/merged/`
+
+---
+## 历史记录
+
+### 2024-11-03
+- 创建视频标准化工具集
+- 添加多种标准化脚本（ultimate, ultra, direct_merge）
+- 创建 Chrome Profile 管理工具
+
