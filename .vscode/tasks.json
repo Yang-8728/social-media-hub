@@ -1,0 +1,64 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "🎯 测试完成提醒",
+      "type": "shell",
+      "command": "echo",
+      "args": [
+        "\n✅ 测试成功！\n📝 记得提交 Git:\n   git add .\n   git commit -m 'feat: [描述你的修改]'\n   git push\n"
+      ],
+      "problemMatcher": [],
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": false,
+        "panel": "shared",
+        "showReuseMessage": false
+      }
+    },
+    {
+      "label": "🚀 快速测试 Merger API",
+      "type": "shell",
+      "command": "powershell",
+      "args": [
+        "-Command",
+        "Invoke-RestMethod -Uri 'http://localhost:8080/api/merger/merge' -Method POST -ContentType 'application/json' -Body '{\"account\": \"ai_vanvan\", \"limit\": 15}'; Write-Host '`n✅ 测试成功！记得提交 Git' -ForegroundColor Green"
+      ],
+      "problemMatcher": []
+    },
+    {
+      "label": "📦 重新构建并重启容器",
+      "type": "shell",
+      "command": "docker-compose",
+      "args": [
+        "build",
+        "--no-cache",
+        "${input:serviceName}",
+        "&&",
+        "docker-compose",
+        "up",
+        "-d",
+        "${input:serviceName}"
+      ],
+      "problemMatcher": []
+    }
+  ],
+  "inputs": [
+    {
+      "id": "serviceName",
+      "type": "pickString",
+      "description": "选择要重新构建的服务",
+      "options": [
+        "api-gateway",
+        "merger",
+        "downloader",
+        "uploader",
+        "scanner",
+        "standardizer",
+        "auth"
+      ],
+      "default": "api-gateway"
+    }
+  ]
+}

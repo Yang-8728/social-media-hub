@@ -1,0 +1,73 @@
+{
+  "ai_vanvan": {
+    "name": "ai_vanvan",
+    "platform": "instagram",
+    "username": "ai_vanvan",
+    "folder_strategy": "daily",
+    "title_prefix": "海外离大谱#",
+    "firefox_profile": "370tsjzy.default-release",
+    "download_safety": {
+      "max_posts_per_session": 50,
+      "request_delay": 45
+    }
+  },
+  "aigf8728": {
+    "name": "aigf8728",
+    "platform": "instagram", 
+    "username": "aigf8728",
+    "folder_strategy": "date_blogger",
+    "firefox_profile": "y34y4ur5.aigf8728_instagram",
+    "bilibili": {
+      "profile_name": "aigf8728_profile",
+      "chrome_profile_path": "c:\\Code\\social-media-hub\\tools\\profiles\\chrome_profile_aigf8728"
+    },
+    "upload_settings": {
+      "title_pattern": "ins你的海外第{序号}个女友:{博主ID}",
+      "next_number": 6
+    },
+    "download_safety": {
+      "max_posts_per_session": 50,
+      "request_delay": 2
+    }
+  },
+  "twitter": {
+    "name": "twitter",
+    "platform": "twitter",
+    "username": "MarcLan8728",
+    "folder_strategy": "daily",
+    "title_prefix": "推特搞笑#",
+    "twitter_api": {
+      "api_key": "nrEnN18uO4Mhegzs81uJYuhuN",
+      "api_secret": "qMO0oiJ568ZzSVsb7FEnxHcBJbFyyti4mLL3wl5z4lxQ9qhJeu",
+      "access_token": "1260512720924717056-73J9LOszIpk9CBRKsTPst0RWYmzXlX",
+      "access_token_secret": "hsbKmjL7g02Uj4MIGC7A3rx7hChnOxFcYjGxBbMAvCa6g"
+    },
+    "download_safety": {
+      "max_posts_per_session": 50,
+      "request_delay": 30
+    }
+  },
+  "youtube": {
+    "name": "youtube",
+    "platform": "youtube",
+    "username": "你的YouTube用户名",
+    "folder_strategy": "daily",
+    "title_prefix": "洋了二正#",
+    "youtube_api": {
+      "client_id": "YOUR_GOOGLE_CLIENT_ID",
+      "client_secret": "YOUR_GOOGLE_CLIENT_SECRET"
+    },
+    "bilibili": {
+      "profile_name": "youtube_gaoxiao_profile",
+      "chrome_profile_path": "c:\\Code\\social-media-hub\\tools\\profiles\\chrome_profile_youtube"
+    },
+    "upload_settings": {
+      "title_pattern": "洋了二正#{序号}",
+      "next_number": 1
+    },
+    "download_safety": {
+      "max_posts_per_session": 50,
+      "request_delay": 5
+    }
+  }
+}
